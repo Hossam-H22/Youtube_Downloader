@@ -36,7 +36,9 @@ def download_youtube_videos(playlist_url, noplaylist = True, output_path='.', nu
 
 def download_subtitles(video_url, output_path='.', language_code='en', video_index=""):
     try:
-        video_id = video_url.split('v=')[1] # Extract video ID from the URL
+        yt = YouTube(video_url)
+        # video_id = video_url.split('v=')[1] # Extract video ID from the URL
+        video_id = yt.video_id # Extract video ID from the URL
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id) # Get the transcript for the video
         transcript = transcript_list.find_transcript([language_code]) # Find the transcript in the desired language
         transcript_data = transcript.fetch() # Fetch the transcript
@@ -46,7 +48,6 @@ def download_subtitles(video_url, output_path='.', language_code='en', video_ind
         srt_text = formatter.format_transcript(transcript_data)
 
         # Save the subtitle as SRT file
-        yt = YouTube(video_url)
         title = clean_filename(yt.title)
         filename = f'{output_path}/{title}.srt' if len(video_index)==0 else f'{video_index}{output_path}/{title}.srt'
         with open(filename, "w", encoding="utf-8") as file:
@@ -177,7 +178,7 @@ def video_processes(video_url):
     yt = YouTube(video_url)
     video_title = yt.title
     video_length = format_video_length(yt.length)
-    transcript_list = get_available_subtitles(video_url.split('v=')[1])
+    transcript_list = get_available_subtitles(yt.video_id)
     if transcript_list[0] == "Error": transcript_list = []
 
     print('           ', end='\r')
