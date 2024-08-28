@@ -92,7 +92,7 @@ def get_available_subtitles(video_id):
             subtitle_languages.append(transcript.language_code) # Collect available languages
         return subtitle_languages
     except Exception as e:
-        print(f"An error occurred: {e} \n")
+        # print(f"An error occurred: {e} \n")
         return ["Error"]
 
 def format_video_length(seconds):
@@ -125,6 +125,13 @@ def print_subtitles(transcript_list):
         if subtitle_choise < 1 or subtitle_choise > index:
             subtitle_choise = 1
     return subtitle_choise
+
+def print_chapters_information(chapters):
+    print("Video Chapters: ")
+    for index, chapter in enumerate(chapters):
+        chapter_title = clean_filename(chapter['title'])
+        duration = format_video_length(int(chapter['end_time'] - chapter['start_time']))
+        print(f"    {index+1}. {chapter_title}  =>  {duration}")
 
 def get_total_length_playlist(videos_info):
     total_length = 0
@@ -203,6 +210,7 @@ def video_processes(video_url):
         info['transcript_list'] = []
 
     print('           ', end='\r')
+    clear_console()
     print(f'\nVideo Information:')
     print(f'Title: {info['title']}')
     print(f'Duration: {info['length']}')
@@ -210,12 +218,17 @@ def video_processes(video_url):
         print(f'Video have subtitles: {info['transcript_list']}')
     else:
         print(f"Video doesn't have subtitles")
+    if len(info['chapters']):
+        print_chapters_information(info['chapters'])
+    else:
+        print(f"Video doesn't have chapters")
 
     downloadChoice = input("\nDownload Video: Y or N ?  ")
     if downloadChoice == 'Y' or downloadChoice == 'y':
         subtitle_choise = print_subtitles(info['transcript_list'])
         folder_path = input("\nPlease enter the path to the folder where you want to save: ")
-        createVideoFolder = input("\nWrap video with a folder: Y or N ?  ")
+        # createVideoFolder = input("\nWrap video with a folder: Y or N ?  ")
+        createVideoFolder = input("\nSplit video to chapters: Y or N ?  ")
         if createVideoFolder == 'Y' or createVideoFolder == 'y':
             createVideoFolder = True
             folder_path = os.path.join(folder_path, info['title'])
@@ -230,7 +243,15 @@ def video_processes(video_url):
             subtitleFilePath = download_subtitles(info['id'], info['title'], folder_path, info['transcript_list'][subtitle_choise - 1])
 
         if createVideoFolder:
-            create_text_file([info['url'], "\n\n\n\n\n\n\n\n\n\n\n", info['description']], folder_path)
+            textFile = [
+                "Video Url: \n",
+                info['url'],
+                "\n\n\n\n\n\n\n\n\n\n",
+                f"Title: \n{info['title']}\n\n",
+                "Description: \n",
+                info['description']
+            ]
+            create_text_file(textFile, folder_path)
             video_path = os.path.join(folder_path, f"{info['title']}.mp4")
             chapters = info['chapters']
             if chapters:
@@ -252,6 +273,7 @@ def playlist_processes(playlist_url):
             break
 
     print('           ', end='\r')
+    clear_console()
     print(f'Playlist Information:')
     print(f'Title: {info['title']}')
     print(f'Number of Videos: {info['number_videos']}')
@@ -273,23 +295,30 @@ def playlist_processes(playlist_url):
         folder_path = os.path.join(folder_path, info['title'])
         os.makedirs(folder_path, exist_ok=True)
 
-        index = 1
-        for video in info['videos_info']:
-            if numerateChoice: video_title = f'{format_counter(index, info['number_videos'])}{video['title']}'
+
+        textFile = ["Playlist Url: \n", info['url'], "\n\n\n\n\n\n\n\n\n\n", "Videos Information: \n\n\n\n"]
+        for index, video in enumerate(info['videos_info']):
+            if numerateChoice: video_title = f'{format_counter(index+1, info['number_videos'])}{video['title']}'
             else: video_title = video['title']
+
+            textFile.append(f"Video #{index+1}\n")
+            textFile.append("====================================\n")
+            textFile.append(f"Title: {video_title}\n")
+            textFile.append(f"Description: {video["description"]} \n")
+            textFile.append("====================================\n\n\n\n\n\n\n")
 
             download_youtube_videos(video['url'], video_title, folder_path)
             download_subtitles(video['id'], video_title, folder_path, info['transcript_list'][subtitle_choise - 1])
-            index += 1
 
-        create_text_file([ info['url'] ], folder_path)
+
+        create_text_file(textFile, folder_path)
         print("\nDownload Finished\n\n")
         os.startfile(folder_path)
 
 
 def start_program():
     while True:
-        print("\nWelcome to Youtube Downloader 😊 \n")
+        print("\nWelcome to Youtube Downloader V1.1.2 😊 developed by Eng.Hossam Hatem \n")
         downloadType = int(input("Please choose number: \n1 - Video \n2 - Playlist \n3 - Quit 👋\nYou choice is: "))
         if downloadType == 1:
             video_url = input("\nPlease enter the link of youtube video: ")
@@ -306,7 +335,6 @@ def start_program():
 
         input("\n\n\nPress any key to continue .. \n")
         clear_console()
-
 
 
 def split_downloaded_video_and_subtitle_into_chapters():
