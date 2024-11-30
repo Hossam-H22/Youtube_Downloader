@@ -1,3 +1,4 @@
+import webview
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import SRTFormatter
 from pysrt import SubRipFile, SubRipItem, SubRipTime
@@ -5,6 +6,7 @@ from pytube import Playlist, YouTube
 import subprocess
 import yt_dlp
 import pysrt
+import json
 import time
 import re
 import os
@@ -372,15 +374,136 @@ def split_downloaded_video_and_subtitle_into_chapters():
 
 
 
+
+
+class Api:
+    def __init__(self):
+        response = {'message': 'Hello from Python'}
+
+    def getVideoInformation(self, data):
+        print(data)
+        if data['type']=='video':
+            info = get_youtube_video_info(data['url'])
+        else:
+            info = get_youtube_playlist_info(data['url'])
+
+        print("Done \n")
+        return json.dumps({'message': 'ok', 'data': info})
+
+
+    def ttry(self):
+        d = {
+            'message': 'ok',
+            'data':
+                {
+                    'url': 'https://www.youtube.com/playlist?list=PL4cUxeGkcC9jVu0ODJscIi0vMmBZD85ki',
+                    'id': 'PL4cUxeGkcC9jVu0ODJscIi0vMmBZD85ki',
+                    'title': 'Nuxt Router Middleware',
+                    'number_videos': 6,
+                    'length': '42 minutes and 5 seconds',
+                    'transcript_list': ['en'],
+                    'videos_urls': [
+                        'https://www.youtube.com/watch?v=wuStpATtcXY',
+                        'https://www.youtube.com/watch?v=ZzCIH3xoNLY',
+                        'https://www.youtube.com/watch?v=ZksIrWg8lFQ',
+                        'https://www.youtube.com/watch?v=KOmn2qCcAes',
+                        'https://www.youtube.com/watch?v=e0nbXQ6kfAk',
+                        'https://www.youtube.com/watch?v=ArXK-6jIwSA'
+                    ],
+                    'videos_info': [
+                        {
+                            'url': 'https://www.youtube.com/watch?v=wuStpATtcXY',
+                            'id': 'wuStpATtcXY',
+                            'title': 'Nuxt Router Middleware Tutorial #6 - Global Middleware',
+                            'length': '6 minutes and 3 seconds',
+                            'length_seconds': 363,
+                            'thumbnail': 'https://i.ytimg.com/vi/wuStpATtcXY/maxresdefault.jpg',
+                            'chapters': []
+                        },
+                        {
+                            'url': 'https://www.youtube.com/watch?v=ZzCIH3xoNLY',
+                            'id': 'ZzCIH3xoNLY',
+                            'title': 'Nuxt Router Middleware Tutorial #5 - Showing Error Pages',
+                            'length': '3 minutes and 55 seconds',
+                            'length_seconds': 235,
+                            'thumbnail': 'https://i.ytimg.com/vi/ZzCIH3xoNLY/maxresdefault.jpg',
+                            'chapters': []
+                        },
+                        {
+                            'url': 'https://www.youtube.com/watch?v=ZksIrWg8lFQ',
+                            'id': 'ZksIrWg8lFQ',
+                            'title': 'Nuxt Router Middleware Tutorial #4 - Middleware Chaining',
+                            'length': '8 minutes and 5 seconds',
+                            'length_seconds': 485,
+                            'thumbnail': 'https://i.ytimg.com/vi/ZksIrWg8lFQ/maxresdefault.jpg',
+                            'chapters': []
+                        },
+                        {
+                            'url': 'https://www.youtube.com/watch?v=KOmn2qCcAes',
+                            'id': 'KOmn2qCcAes',
+                            'title': 'Nuxt Router Middleware Tutorial #3 - Named Middleware',
+                            'length': '4 minutes and 50 seconds',
+                            'length_seconds': 290,
+                            'thumbnail': 'https://i.ytimg.com/vi_webp/KOmn2qCcAes/maxresdefault.webp',
+                            'chapters': []
+                        },
+                        {
+                            'url': 'https://www.youtube.com/watch?v=e0nbXQ6kfAk',
+                            'id': 'e0nbXQ6kfAk',
+                            'title': 'Nuxt Router Middleware Tutorial #2 - Basic Inline Middleware Example',
+                            'length': '9 minutes and 46 seconds',
+                            'length_seconds': 586,
+                            'thumbnail': 'https://i.ytimg.com/vi/e0nbXQ6kfAk/maxresdefault.jpg',
+                            'chapters': [
+                                {'start_time': 0.0, 'title': 'Intro', 'end_time': 20.0},
+                                {'start_time': 20.0, 'title': 'Inline Middleware', 'end_time': 172.0},
+                                {'start_time': 172.0, 'title': 'Delete User Cookie', 'end_time': 272.0},
+                                {'start_time': 272.0, 'title': 'Redirect User', 'end_time': 355.0},
+                                {'start_time': 355.0, 'title': 'Route Guard', 'end_time': 586}
+                            ]
+                        },
+                        {
+                            'url': 'https://www.youtube.com/watch?v=ArXK-6jIwSA',
+                            'id': 'ArXK-6jIwSA',
+                            'title': 'Nuxt Router Middleware Tutorial #1 - Introduction',
+                            'length': '9 minutes and 26 seconds',
+                            'length_seconds': 566,
+                            'thumbnail': 'https://i.ytimg.com/vi/ArXK-6jIwSA/maxresdefault.jpg',
+                            'chapters': []
+                        }
+                    ]
+                }
+        }
+        return json.dumps(d)
+
+    def sayHelloTo(self, name):
+        print(name)
+        response = {'message': 'Hello {0}!'.format(name)}
+        return response
+
+    def error(self):
+        raise Exception('This is a Python exception')
+
+
+
+
 if __name__ == '__main__':
     start_program()
 
     # split_downloaded_video_and_subtitle_into_chapters()
 
 
+    # url = 'https://www.youtube.com/watch?v=glXV1T3xLiM&ab_channel=MaharaTech-ITIMOOCA'
+    # download_youtube_videos(
+    #     url,
+    #     get_youtube_video_info(url)['title'],
+    #     'D:/Desktop ME/Database Fundamentals/CH07_Normalization'
+    # )
 
 
 
-
-
-
+    api = Api()
+    window = webview.create_window('Go Offline', 'index.html', js_api=api)
+    # htmlPage = ''
+    # window = webview.create_window('JS API example', html=htmlPage, js_api=api)
+    webview.start(debug=True)

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoOffline</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+
+
+
+    <style>
+         *{
+            font-family: "Inter", sans-serif;
+        }
+        .center-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0 5px 0;
+            background-color: #f8f9fa;
+        }
+
+        p {
+            margin-bottom: 5px;
+        }
+
+        .remove_btn_style {
+            background: none;
+            border: none;
+        }
+
+        .test {
+        }
+    </style>
+
+
+
+</head>
+
+<body class="">
+
+    <nav id="navbar"></nav>
+    <div id="modalBody"></div>
+
+
+    <!-- <div style="width: 100px; height: 100px;">
+        <i class="fa-solid fa-info fa-lg"></i>
+        <i class="fa-solid fa-circle-question fa-lg"></i>
+
+
+        <i class="fa-regular fa-clock"></i>
+        <i class="fa-solid fa-link"></i>
+
+        <i class="fa-regular fa-copy"></i>
+        <i class="fa-regular fa-clipboard"></i>
+        <i class="fa-solid fa-check"></i>
+    </div> -->
+
+
+
+
+    <div id="homeContainer"></div>
+
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            Developed by <a href="https://linktr.ee/hossam_h22" target="_blank" class="text-decoration-none text-black">Eng.Hossam Hatem</a>
+        </p>
+    </footer>
+
+    <!-- Bootstrap JS and dependencies (Optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        const baseUrlRepo = 'https://github.com/Hossam-H22/Youtube_Downloader'
+        const hostUrlRepo = 'https://hossam-h22.github.io/Youtube_Downloader'
+        const version = '1.1.2'
+        var info;
+
+
+        var containerElement = document.getElementById('homeContainer');
+        var navbarElement = document.getElementById('navbar');
+        var modalElement = document.getElementById('modalBody');
+
+        homePage = `
+            <div class="container d-flex flex-column align-items-center justify-content-center" style="margin: 25px auto auto; height: 100%;">
+                <!-- Logo -->
+                <img src="${hostUrlRepo}/youtube-dl.ico" alt="Logo" class="img-fluid" style="max-width: 150px;">
+
+                <h1>Go Offline</h1>
+
+                <!-- Description -->
+                <p class="mt-3 text-center">Download your favorite videos or playlists directly from YouTube.</p>
+
+                <!-- Input Field -->
+                <input type="text" class="form-control mt-3 w-50" placeholder="Enter URL" id="url_input">
+
+                <!-- Dropdown List -->
+                <select class="form-control mt-3 w-50" id="url_option">
+                    <option value="type">Select type</option>
+                    <option value="video">Video</option>
+                    <option value="playlist">Playlist</option>
+                </select>
+
+                <div id="errorAlert"></div>
+
+                <!-- Button -->
+                <button class="btn btn-primary mt-3 mb-5 px-5 fs-5 fw-semibold" onClick="getInfo()" id="goBtn">Go</button>
+            </div>
+        `;
+
+        navbarBody = `
+            <div class="container-fluid justify-content-between">
+                <a class="navbar-brand d-flex align-items-center" onClick="showHomePage()" style="cursor: pointer;">
+                    <img src="${hostUrlRepo}/youtube-dl.ico" alt="Logo" class="img-fluid" style="max-width: 40px;">
+                    <span class="fs-3 fw-semibold ms-2">Go Offline</span>
+                </a>
+                <div class="d-flex flex-row">
+                    <div class="me-2 text-black-50 fw-semibold">v${version}</div>
+                    <button onClick="showHelpModal()" class="remove_btn_style mx-2">
+                        <i class="fa-solid fa-circle-question fa-lg"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        playlistPage= ``;
+
+        videoPage= ``;
+
+        document.addEventListener('DOMContentLoaded', async ()=>{
+            showHomePage();
+            var versionFile = await fetch(`${hostUrlRepo}/version.json`);
+            versionFile = await versionFile.json();
+            if(versionFile?.version != version){
+                showModal("Now", "Ther exist update download it now")
+            }
+
+            copyText("https://www.youtube.com/playlist?list=PL4cUxeGkcC9jVu0ODJscIi0vMmBZD85ki");
+        });
+
+        async function getInfo() {
+            console.log("start get information of url");
+            var alertErrorElement = document.getElementById('errorAlert');
+            var url_input = document.getElementById('url_input').value;
+            var url_type = document.getElementById('url_option').value;
+            if(!String(url_input).startsWith("https://") || url_input.length==0){
+                alertErrorElement.className = "alert alert-danger mt-3";
+                alertErrorElement.innerHTML = "please enter valied url starts with https://";
+                return;
+            }else if(url_type == "type"){
+                alertErrorElement.className = "alert alert-danger mt-3";
+                alertErrorElement.innerHTML = "please type of url";
+                return;
+            }
+            else {
+                alertErrorElement.className = "";
+                alertErrorElement.innerHTML = "";
+            }
+            var options = {
+                "type": url_type,
+                "url": url_input,
+            }
+
+            try {
+                document.getElementById("goBtn").innerHTML = '<i class="fa fa-spinner fa-spin fa-lg" style="color: #fff;"></i>'
+                info = await pywebview.api.getVideoInformation(options);
+                // info = await pywebview.api.ttry();
+                info = JSON.parse(info);
+                console.log(info);
+                info = info.data
+                showNavBar(true);
+                if(url_type=="video") containerElement.innerHTML = videoPage;
+                else showPlaylistPage();
+            } catch (error) {
+                alertErrorElement.className = "alert alert-danger mt-3";
+                alertErrorElement.innerHTML = error;
+            }
+
+
+        }
+
+        function showModal(title, body){
+            var modalBody = `
+                <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="myModalLabel">
+                                    ${title}
+                                </h5>
+                                <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
+                            </div>
+                            <div class="modal-body">
+                                ${body}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalElement.innerHTML = modalBody;
+            var myModal = new bootstrap.Modal(document.getElementById('myModal'));
+            myModal.show();
+            modalElement.innerHTML = '';
+        }
+
+        function showNavBar(show) {
+            if(show){
+                navbarElement.innerHTML = navbarBody;
+                navbarElement.className = 'navbar navbar-expand-lg bg-body-tertiary';
+            }
+            else {
+                navbarElement.innerHTML = '';
+                navbarElement.className = '';
+            }
+        }
+
+        function showHomePage(){
+            showNavBar(false);
+            containerElement.innerHTML = homePage
+        }
+
+        function showPlaylistPage(){
+            playlistPage = `
+                <div class="container mt-3 mb-3">
+                    <div class="">
+                        <h1 class="fs-1 fw-bold">${info?.title}</h1>
+                        <p class="text-black-50">
+                            <i class="fa-solid fa-link me-1"></i>
+                            <a href="${info?.url}" class="text-decoration-none text-black-50" target="_blank">
+                                    ${info?.url}
+                            </a>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p>
+                                    <i class="fa-regular fa-clock me-1"></i>
+                                    ${info?.length}
+                                </p>
+                                <p>Number of videos: ${info?.number_videos}</p>
+                            </div>
+                            <a class="btn btn-success btn-sm" style="height: fit-content;" href="#downlaodOptions">
+                                Download
+                                <i class="fa-solid fa-circle-down 4x"></i>
+                            </a>
+                        </div>
+
+                    </div>
+
+                    <hr />
+
+                    <div class="row" id="playlistVidoesList"></div>
+
+                    <div id="downlaodOptions" class="mt-4 mb-5 border border-success rounded p-3">
+                        <div class="d-flex align-items-center">
+
+                            <div class="me-5">
+                                <p>Select Subtitle language: </p>
+                                <div id="transcripts_radios"></div>
+                            </div>
+
+                            <div class="ms-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="numerate_playlist">
+                                    <label class="form-check-label" for="numerate_playlist">
+                                            Numerated Playlist
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="text_file">
+                                    <label class="form-check-label" for="text_file">
+                                            Create a text file for playlist information
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <input type="text" class="form-control mt-3 w-100" placeholder="Enter folder path" id="url_input">
+
+                        <div>
+                            <button class="btn btn-success mt-3" onClick="">
+                                Download
+                                <i class="fa-solid fa-circle-down 4x"></i>
+                            </button>
+                            <button class="btn btn-primary mt-3" onClick="showHomePage()">Back</button>
+                        </div>
+                    </div>
+
+
+                </div>
+            `;
+            containerElement.innerHTML = playlistPage;
+
+
+
+            info?.transcript_list.push('none')
+            var transcriptDiv = document.getElementById("transcripts_radios")
+            info?.transcript_list.forEach((lang, index)=> {
+                transcriptDiv.innerHTML += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="languages" id="${lang}" value="${lang}">
+                        <label class="form-check-label" for="${lang}">
+                            ${lang}
+                        </label>
+                    </div>
+                `;
+            });
+
+
+            var vidoesList = document.getElementById("playlistVidoesList");
+            info?.videos_info.forEach((element, index) => {
+                vidoesList.innerHTML += `
+                    <div class="col-12 d-flex flex-row align-content-center row mb-2 py-1 ${index%2==0? "bg-light": ""}">
+                        <div class="col-4">
+                            <img src="${element?.thumbnail}" alt="vidoe thumbnail" width="100%"/>
+                        </div>
+                        <div class="col-8">
+                            <p class="fw-semibold overflow-hidden text-nowrap" style="text-overflow: ellipsis;">${element?.title}</p>
+                            <p class="text-black-50">
+                                <i class="fa-solid fa-link me-1"></i>
+                                <a href="${element?.url}" class="text-decoration-none text-black-50" target="_blank">
+                                    ${element?.url}
+                                </a>
+                            </p>
+                            <p>
+                                <i class="fa-regular fa-clock me-1"></i>
+                                ${element?.length}
+                            </p>
+                            <span id="videoStatut_${index}" dwonload_status>
+                                <i class="fa-solid fa-square-check text-success"></i>
+                                <i class="fa fa-spinner fa-spin"></i>
+                                <i class="fa-solid fa-triangle-exclamation text-danger" ></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+        }
+
+
+        function showHelpModal(){
+            showModal("welcome to Go Offline");
+        }
+
+        function copyText(text){
+            console.log("Copyed");
+            navigator.clipboard.writeText(text);
+        }
+
+
+    </script>
+</body>
+
+</html>
