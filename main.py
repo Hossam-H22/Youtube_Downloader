@@ -21,6 +21,8 @@ def get_youtube_video_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
+    chapters = info.get('chapters', []) or []
+
     video_information = {
         "url": url,
         "id": info["id"],
@@ -28,7 +30,8 @@ def get_youtube_video_info(url):
         "length": format_video_length(info["duration"]),
         "length_seconds": info["duration"],
         "description": info["description"],
-        "chapters": info.get('chapters', [])
+        "thumbnail": info['thumbnail'],
+        "chapters": list(chapters)
     }
     return video_information
 
@@ -43,15 +46,29 @@ def get_youtube_playlist_info(url):
         'length': '',
         # 'description': playlist.description,
         'transcript_list': [],
-        'videos_urls': video_urls,
+        'videos_urls': list(video_urls),
         'videos_info': [],
     }
 
+    videos_info = []
     for video_url in video_urls:
-        playlist_information['videos_info'].append(get_youtube_video_info(video_url))
+        videos_info.append(get_youtube_video_info(video_url))
 
+    playlist_information['videos_info'] = list(reversed(videos_info))
+    playlist_information['videos_info'] = list(videos_info)
     total_length_in_seconds = get_total_length_playlist(playlist_information['videos_info'])
     playlist_information['length'] = format_video_length(total_length_in_seconds)
+
+    transcript_list = []
+    for video in playlist_information['videos_info']:
+        listLang = get_available_subtitles(video['id'])
+        if len(listLang)>0 and listLang[0] != "Error":
+            transcript_list = listLang
+            # transcript_list.append("None")
+            break
+
+    playlist_information['transcript_list'] = list(transcript_list)
+
     return playlist_information
 
 def download_youtube_videos(url, title, output_path='.'):
@@ -266,11 +283,7 @@ def video_processes(video_url):
 
 def playlist_processes(playlist_url):
     info = get_youtube_playlist_info(playlist_url)
-    for video in info['videos_info']:
-        list = get_available_subtitles(video['id'])
-        if len(list)>0 and list[0] != "Error":
-            info['transcript_list'] = list
-            break
+
 
     print('           ', end='\r')
     clear_console()
@@ -356,6 +369,7 @@ def split_downloaded_video_and_subtitle_into_chapters():
         split_video_into_chapters(video_path, info['chapters'], Chapters_folder_path)
         if len(subtitleFilePath) > 0:
             split_subtitles_into_chapters(subtitleFilePath, info['chapters'], Chapters_folder_path)
+
 
 
 if __name__ == '__main__':
