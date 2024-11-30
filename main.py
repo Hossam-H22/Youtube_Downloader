@@ -488,7 +488,7 @@ class Api:
 
 
 if __name__ == '__main__':
-    start_program()
+    # start_program()
 
     # split_downloaded_video_and_subtitle_into_chapters()
 
