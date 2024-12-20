@@ -237,15 +237,17 @@ def video_processes(video_url):
         print(f"Video doesn't have subtitles")
     if len(info['chapters']):
         print_chapters_information(info['chapters'])
-    else:
-        print(f"Video doesn't have chapters")
+    # else:
+        # print(f"Video doesn't have chapters")
 
     downloadChoice = input("\nDownload Video: Y or N ?  ")
     if downloadChoice == 'Y' or downloadChoice == 'y':
         subtitle_choise = print_subtitles(info['transcript_list'])
         folder_path = input("\nPlease enter the path to the folder where you want to save: ")
         # createVideoFolder = input("\nWrap video with a folder: Y or N ?  ")
-        createVideoFolder = input("\nSplit video to chapters: Y or N ?  ")
+
+        createVideoFolder = input("\nSplit video to chapters if exist: Y or N ?  ")
+
         if createVideoFolder == 'Y' or createVideoFolder == 'y':
             createVideoFolder = True
             folder_path = os.path.join(folder_path, info['title'])
@@ -321,7 +323,8 @@ def playlist_processes(playlist_url):
             textFile.append("====================================\n\n\n\n\n\n\n")
 
             download_youtube_videos(video['url'], video_title, folder_path)
-            download_subtitles(video['id'], video_title, folder_path, info['transcript_list'][subtitle_choise - 1])
+            if len(info['transcript_list']) > subtitle_choise-1:
+                download_subtitles(video['id'], video_title, folder_path, info['transcript_list'][subtitle_choise - 1])
 
 
         create_text_file(textFile, folder_path)
