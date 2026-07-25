@@ -1,4 +1,3 @@
 yt-dlp
 youtube-transcript-api
 pysrt
-pytube

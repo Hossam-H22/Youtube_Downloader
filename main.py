@@ -1,11 +1,8 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import SRTFormatter
 from pysrt import SubRipFile, SubRipItem, SubRipTime
-from pytube import Playlist, YouTube
 import subprocess
 import yt_dlp
-import pysrt
-import time
 import sys
 import re
 import os
@@ -37,13 +34,21 @@ def get_youtube_video_info(url):
     return video_information
 
 def get_youtube_playlist_info(url):
-    playlist = Playlist(url)
-    video_urls = playlist.video_urls
+    ydl_opts = {
+        'quiet': True,        # Suppress output
+        'extract_flat': True  # Only list the playlist entries, don't resolve each video yet
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+    entries = info.get('entries', []) or []
+    video_urls = [f"https://www.youtube.com/watch?v={entry['id']}" for entry in entries]
+
     playlist_information = {
         'url': url,
-        'id': playlist.playlist_id,
-        'title': clean_filename(playlist.title),
-        'number_videos': playlist.length,
+        'id': info['id'],
+        'title': clean_filename(info.get('title', '')),
+        'number_videos': len(entries),
         'length': '',
         # 'description': playlist.description,
         'transcript_list': [],
