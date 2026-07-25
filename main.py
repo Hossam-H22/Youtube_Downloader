@@ -81,9 +81,18 @@ def download_youtube_videos(url, title, output_path='.'):
         'outtmpl': f'{output_path}/{title}.%(ext)s',
         'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',  # Download the best quality
         'noplaylist': True,  # Only download single video, not the whole playlist
+        'retries': 10,           # Retry the whole download on network errors
+        'fragment_retries': 10,  # Retry individual fragments (fixes "Connection reset by peer")
+        'socket_timeout': 30,    # Give up on a stalled connection sooner, then retry
+        'continuedl': True,      # Resume partially downloaded files instead of restarting
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        return True
+    except Exception as e:
+        print(f"\nFailed to download '{title}': {e}\n")
+        return False
 
 def download_subtitles(video_id, title, output_path='.', language_code='en'):
     try:
@@ -329,6 +338,7 @@ def playlist_processes(playlist_url):
 
 
         textFile = ["Playlist Url: \n", info['url'], "\n\n\n\n\n\n\n\n\n\n", "Videos Information: \n\n\n\n"]
+        failed_videos = []
         for index, video in enumerate(info['videos_info']):
             if numerateChoice: video_title = f"{format_counter(index+1, info['number_videos'])}{video['title']}"
             else: video_title = video['title']
@@ -339,13 +349,23 @@ def playlist_processes(playlist_url):
             textFile.append(f"Description: {video['description']} \n")
             textFile.append("====================================\n\n\n\n\n\n\n")
 
-            download_youtube_videos(video['url'], video_title, folder_path)
-            if len(info['transcript_list']) > subtitle_choise-1:
-                download_subtitles(video['id'], video_title, folder_path, info['transcript_list'][subtitle_choise - 1])
+            print(f"\n[{index+1}/{info['number_videos']}] Downloading: {video_title}\n")
+            if download_youtube_videos(video['url'], video_title, folder_path):
+                if len(info['transcript_list']) > subtitle_choise-1:
+                    download_subtitles(video['id'], video_title, folder_path, info['transcript_list'][subtitle_choise - 1])
+            else:
+                failed_videos.append(f"#{index+1} - {video_title}")
 
 
         create_text_file(textFile, folder_path)
-        print("\nDownload Finished\n\n")
+        print("\nDownload Finished\n")
+        if failed_videos:
+            print(f"{len(failed_videos)} video(s) failed to download:")
+            for failed in failed_videos:
+                print(f"    {failed}")
+            print("Re-run the playlist to retry them (already-downloaded videos are skipped).\n")
+        else:
+            print("\n")
         open_folder(folder_path)
 
 
