@@ -6,6 +6,7 @@ import subprocess
 import yt_dlp
 import pysrt
 import time
+import sys
 import re
 import os
 
@@ -54,7 +55,6 @@ def get_youtube_playlist_info(url):
     for video_url in video_urls:
         videos_info.append(get_youtube_video_info(video_url))
 
-    playlist_information['videos_info'] = list(reversed(videos_info))
     playlist_information['videos_info'] = list(videos_info)
     total_length_in_seconds = get_total_length_playlist(playlist_information['videos_info'])
     playlist_information['length'] = format_video_length(total_length_in_seconds)
@@ -82,7 +82,7 @@ def download_youtube_videos(url, title, output_path='.'):
 
 def download_subtitles(video_id, title, output_path='.', language_code='en'):
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id) # Get the transcript for the video
+        transcript_list = YouTubeTranscriptApi().list(video_id) # Get the transcript for the video
         transcript = transcript_list.find_transcript([language_code]) # Find the transcript in the desired language
         transcript_data = transcript.fetch() # Fetch the transcript
 
@@ -103,7 +103,7 @@ def download_subtitles(video_id, title, output_path='.', language_code='en'):
 def get_available_subtitles(video_id):
     try:
         # Retrieve the list of available transcripts
-        transcripts = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcripts = YouTubeTranscriptApi().list(video_id)
         subtitle_languages = []
         for transcript in transcripts:
             subtitle_languages.append(transcript.language_code) # Collect available languages
@@ -163,6 +163,18 @@ def clear_console():
     # Clear command for Unix/Linux/Mac
     else:
         os.system('clear')
+
+def open_folder(path):
+    # Open the folder in the system file explorer (cross-platform)
+    try:
+        if os.name == 'nt':
+            os.startfile(path)
+        elif sys.platform == 'darwin':
+            subprocess.run(['open', path])
+        else:
+            subprocess.run(['xdg-open', path])
+    except Exception as e:
+        print(f"Could not open folder: {e}")
 
 def format_counter(counter, length):
     total_digit_len = len(str(abs(length)))
@@ -228,13 +240,13 @@ def video_processes(video_url):
 
     print('           ', end='\r')
     clear_console()
-    print(f'\nVideo Information:')
-    print(f'Title: {info['title']}')
-    print(f'Duration: {info['length']}')
+    print('\nVideo Information:')
+    print(f"Title: {info['title']}")
+    print(f"Duration: {info['length']}")
     if len(info['transcript_list']) > 0:
-        print(f'Video have subtitles: {info['transcript_list']}')
+        print(f"Video have subtitles: {info['transcript_list']}")
     else:
-        print(f"Video doesn't have subtitles")
+        print("Video doesn't have subtitles")
     if len(info['chapters']):
         print_chapters_information(info['chapters'])
     # else:
@@ -281,7 +293,7 @@ def video_processes(video_url):
                     split_subtitles_into_chapters(subtitleFilePath, chapters, Chapters_folder_path)
 
         print("\nDownload Finished\n\n")
-        os.startfile(folder_path)
+        open_folder(folder_path)
 
 def playlist_processes(playlist_url):
     info = get_youtube_playlist_info(playlist_url)
@@ -289,11 +301,11 @@ def playlist_processes(playlist_url):
 
     print('           ', end='\r')
     clear_console()
-    print(f'Playlist Information:')
-    print(f'Title: {info['title']}')
-    print(f'Number of Videos: {info['number_videos']}')
-    print(f'Total Duration: {info['length']}')
-    if len(info['transcript_list']) > 0: print(f'Playlist has subtitles: {info['transcript_list']}')
+    print('Playlist Information:')
+    print(f"Title: {info['title']}")
+    print(f"Number of Videos: {info['number_videos']}")
+    print(f"Total Duration: {info['length']}")
+    if len(info['transcript_list']) > 0: print(f"Playlist has subtitles: {info['transcript_list']}")
     # print(f'Description: {info['description']}')
 
     downloadChoice = input("\nDownload Playlist: Y or N ?  ")
@@ -313,13 +325,13 @@ def playlist_processes(playlist_url):
 
         textFile = ["Playlist Url: \n", info['url'], "\n\n\n\n\n\n\n\n\n\n", "Videos Information: \n\n\n\n"]
         for index, video in enumerate(info['videos_info']):
-            if numerateChoice: video_title = f'{format_counter(index+1, info['number_videos'])}{video['title']}'
+            if numerateChoice: video_title = f"{format_counter(index+1, info['number_videos'])}{video['title']}"
             else: video_title = video['title']
 
             textFile.append(f"Video #{index+1}\n")
             textFile.append("====================================\n")
             textFile.append(f"Title: {video_title}\n")
-            textFile.append(f"Description: {video["description"]} \n")
+            textFile.append(f"Description: {video['description']} \n")
             textFile.append("====================================\n\n\n\n\n\n\n")
 
             download_youtube_videos(video['url'], video_title, folder_path)
@@ -329,7 +341,7 @@ def playlist_processes(playlist_url):
 
         create_text_file(textFile, folder_path)
         print("\nDownload Finished\n\n")
-        os.startfile(folder_path)
+        open_folder(folder_path)
 
 
 def start_program():
