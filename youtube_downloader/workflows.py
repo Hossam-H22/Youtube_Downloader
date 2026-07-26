@@ -109,9 +109,12 @@ class DownloadWorkflows:
         the reason in ``outcome.error``) and offer a retry. Failed videos are also
         collected and returned; re-running skips already-downloaded files.
         """
+        selected = options.selected_indices
         logger.info(
-            "Playlist workflow start: '%s' (%d videos, subs=%s, numerate=%s)",
-            info.title, info.number_videos, options.subtitle_language, options.numerate,
+            "Playlist workflow start: '%s' (%d videos, %s selected, subs=%s, numerate=%s)",
+            info.title, info.number_videos,
+            "all" if selected is None else len(selected),
+            options.subtitle_language, options.numerate,
         )
         save_path = os.path.join(options.save_path, info.title)
         ensure_dir(save_path)
@@ -119,6 +122,9 @@ class DownloadWorkflows:
         text_file = ["Playlist Url: \n", info.url, "\n\n\n\n\n\n\n\n\n\n", "Videos Information: \n\n\n\n"]
         failed_videos = []
         for index, video in enumerate(info.videos_info):
+            if selected is not None and (index + 1) not in selected:
+                logger.info("Skipping playlist video %d/%d (not selected)", index + 1, info.number_videos)
+                continue
             if options.numerate:
                 video_title = f"{format_counter(index + 1, info.number_videos)}{video.title}"
             else:

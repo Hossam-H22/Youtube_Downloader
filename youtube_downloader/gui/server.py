@@ -157,10 +157,15 @@ def create_app(
     def api_download_playlist():
         data = request.get_json(silent=True) or {}
         url = data.get('url', '').strip()
+        raw_indices = data.get('selected_indices')
+        selected_indices = (
+            {int(i) for i in raw_indices} if isinstance(raw_indices, list) and raw_indices else None
+        )
         options = PlaylistDownloadOptions(
             save_path=data.get('save_path') or DEFAULT_SAVE_PATH,
             subtitle_language=data.get('subtitle_language') or None,
             numerate=bool(data.get('numerate')),
+            selected_indices=selected_indices,
         )
         job = jobs.create_job()
         logger.info("GUI request: download-playlist %s (job %s)", url or _EMPTY, job.id)

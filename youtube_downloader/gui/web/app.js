@@ -273,6 +273,13 @@ function renderPlaylistVideos(videos) {
     list.innerHTML = "";
     videos.forEach((v) => {
         const li = document.createElement("li");
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.className = "v-check";
+        check.checked = true;
+        check.dataset.index = v.index;
+        check.addEventListener("change", updateSelection);
+        li.appendChild(check);
         if (v.thumbnail) {
             const img = document.createElement("img");
             img.src = v.thumbnail;
@@ -294,6 +301,31 @@ function renderPlaylistVideos(videos) {
         li.appendChild(body);
         list.appendChild(li);
     });
+    updateSelection();
+}
+
+// All per-video selection checkboxes in the playlist list.
+function plChecks() {
+    return Array.from(document.querySelectorAll("#pl-videos .v-check"));
+}
+
+// 1-based indices of the currently selected playlist videos.
+function selectedIndices() {
+    return plChecks()
+        .filter((c) => c.checked)
+        .map((c) => Number.parseInt(c.dataset.index, 10));
+}
+
+// Sync the "Select all" checkbox, selected-count label, and Download button.
+function updateSelection() {
+    const checks = plChecks();
+    const selected = checks.filter((c) => c.checked).length;
+    const total = checks.length;
+    const master = $("pl-select-all");
+    master.checked = selected === total && total > 0;
+    master.indeterminate = selected > 0 && selected < total;
+    $("pl-selected-count").textContent = `${selected} of ${total} selected`;
+    $("pl-download").disabled = selected === 0;
 }
 
 function wireOpen(buttonId) {
@@ -398,7 +430,17 @@ const plUi = {
     rows: {},
 };
 
+// "Select all" toggles every per-video checkbox.
+$("pl-select-all").addEventListener("change", (e) => {
+    plChecks().forEach((c) => {
+        c.checked = e.target.checked;
+    });
+    updateSelection();
+});
+
 $("pl-download").addEventListener("click", () => {
+    const selected = selectedIndices();
+    if (!selected.length) return;
     runJob(
         "/api/download-playlist",
         {
@@ -406,6 +448,8 @@ $("pl-download").addEventListener("click", () => {
             subtitle_language: $("pl-subs").value,
             numerate: $("pl-numerate").checked,
             save_path: $("pl-folder").value.trim(),
+            // Omit when every video is selected — the backend treats that as "all".
+            selected_indices: selected.length === plChecks().length ? null : selected,
         },
         plUi
     );

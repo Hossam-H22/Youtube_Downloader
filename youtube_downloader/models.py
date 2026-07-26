@@ -83,11 +83,16 @@ class VideoDownloadOptions:
 
 @dataclass
 class PlaylistDownloadOptions:
-    """Choices for downloading a playlist."""
+    """Choices for downloading a playlist.
+
+    ``selected_indices`` restricts the download to specific videos by their
+    1-based position in the playlist; ``None`` (the default) downloads all.
+    """
 
     save_path: str
     subtitle_language: "str | None" = None
     numerate: bool = False
+    selected_indices: "set[int] | None" = None
 
 
 @dataclass
