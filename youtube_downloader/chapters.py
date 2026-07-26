@@ -1,5 +1,6 @@
 """Splitting a downloaded video and its subtitles into per-chapter files."""
 
+import logging
 import os
 import subprocess
 
@@ -9,6 +10,8 @@ from .interfaces import ChapterSplitter
 from .models import Chapter
 from .utils import clean_filename, format_counter, seconds_to_srt_time
 
+logger = logging.getLogger(__name__)
+
 
 class FfmpegChapterSplitter(ChapterSplitter):
     """Splits video with ffmpeg and subtitles with pysrt, one file per chapter."""
@@ -16,6 +19,7 @@ class FfmpegChapterSplitter(ChapterSplitter):
     def split_video(
         self, video_path: str, chapters: list[Chapter], output_path: str
     ) -> None:
+        logger.info("Splitting video into %d chapters -> %s", len(chapters), output_path)
         index = 1
         for chapter in chapters:
             start_time = chapter.start_time
@@ -28,12 +32,15 @@ class FfmpegChapterSplitter(ChapterSplitter):
                 '-ss', str(start_time), '-to', str(end_time),
                 '-c', 'copy', chapter_file
             ]
+            logger.debug("Chapter %d/%d -> %s", index, len(chapters), chapter_file)
             subprocess.run(command)
             index += 1
+        logger.info("Finished splitting video into %d chapters", len(chapters))
 
     def split_subtitles(
         self, subtitle_path: str, chapters: list[Chapter], output_path: str
     ) -> None:
+        logger.info("Splitting subtitles into %d chapters -> %s", len(chapters), output_path)
         subs = SubRipFile.open(subtitle_path)
         index = 1
         for chapter in chapters:

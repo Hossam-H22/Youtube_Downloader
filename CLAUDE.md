@@ -31,6 +31,7 @@ youtube_downloader/
   filesystem.py   # side effects: open_folder, pick_folder, create_text_file, clear_console, ensure_dir
   metadata.py     # get_metadata()/get_version() — reads metadata.json (single source of truth)
   ytdlp_support.py# js_runtime_opts() — opt-in yt-dlp nsig-solver options (metadata.json settings)
+  logging_config.py # setup_logging() — always-on file log + optional console (see below)
   workflows.py    # DownloadWorkflows — shared download/subtitle/chapter orchestration (no UI)
   cli.py          # ConsoleApp — console menu + I/O, delegates to workflows
   gui/            # Flask web front-end (server.py, jobs.py, web/{index.html,style.css,app.js})
@@ -59,6 +60,12 @@ knows the concrete classes and does the wiring. The GUI reports progress via a
   (models.py), not dicts. Derived values like duration are dataclass properties.
 - **Naming:** snake_case for functions and locals, PascalCase for classes. Add
   type hints on new functions/methods.
+- **Logging is always on.** Every module has `logger = logging.getLogger(__name__)`
+  and logs its steps (INFO for milestones, DEBUG for detail, WARNING/ERROR for
+  problems). `main.py` calls `setup_logging()` once; logs always go to a rotating
+  file (`logs/youtube_downloader.log`) and, in GUI mode, also to the terminal. When
+  adding a step, log it. Don't `print()` for diagnostics — use the logger (a few
+  legacy user-facing `print()`s in the console flow stay as UX).
 - **Do not change user-facing behavior casually.** The console menu text, prompts,
   and printed output — and the GUI's labels/flow — are the product UX. Preserve
   wording and output format unless the user explicitly asks to change it.

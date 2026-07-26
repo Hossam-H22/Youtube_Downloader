@@ -1,9 +1,13 @@
 """Video downloader backed by yt-dlp."""
 
+import logging
+
 import yt_dlp
 
 from .interfaces import VideoDownloader
 from .ytdlp_support import js_runtime_opts
+
+logger = logging.getLogger(__name__)
 
 
 class YtDlpDownloader(VideoDownloader):
@@ -48,14 +52,18 @@ class YtDlpDownloader(VideoDownloader):
         if progress_hook is not None:
             ydl_opts['progress_hooks'] = [progress_hook]
 
+        logger.info("Downloading '%s' -> %s", title, output_path)
         last_error = None
         for attempt in range(1, 4):  # up to 3 fresh-extraction attempts for transient 403s
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([url])
+                logger.info("Downloaded '%s'", title)
                 return True
             except Exception as e:
                 last_error = e
+                logger.warning("Attempt %d/3 failed for '%s': %s", attempt, title, e)
                 print(f"\nAttempt {attempt}/3 failed for '{title}': {e}")
+        logger.error("Failed to download '%s' after 3 attempts: %s", title, last_error)
         print(f"\nFailed to download '{title}': {last_error}\n")
         return False

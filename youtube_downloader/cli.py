@@ -5,12 +5,16 @@ the actual downloading to the shared :class:`DownloadWorkflows`. It depends only
 on abstractions, never on the concrete yt-dlp / transcript-api / ffmpeg classes.
 """
 
+import logging
+
 from .filesystem import clear_console, open_folder
 from .interfaces import InfoProvider, SubtitleService
 from .metadata import get_metadata
 from .models import Chapter, PlaylistDownloadOptions, PlaylistInfo, VideoDownloadOptions
 from .utils import clean_filename, format_video_length
 from .workflows import DownloadWorkflows
+
+logger = logging.getLogger(__name__)
 
 
 class ConsoleApp:
@@ -158,6 +162,7 @@ class ConsoleApp:
             developer = meta.get('author', {}).get('name', '')
             print(f"\nWelcome to {meta.get('name', 'Youtube Downloader')} V{meta.get('version', '0.0.0')} 😊 developed by {developer} \n")
             download_type = int(input("Please choose number: \n1 - Video \n2 - Playlist \n3 - Quit 👋\nYou choice is: "))
+            logger.info("Console menu choice: %s", download_type)
             if download_type == 1:
                 video_url = input("\nPlease enter the link of youtube video: ")
                 print('\n')

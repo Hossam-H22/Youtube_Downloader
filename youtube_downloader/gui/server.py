@@ -1,6 +1,7 @@
 """Flask server exposing the download workflows to the browser UI."""
 
 import dataclasses
+import logging
 import os
 import socket
 import threading
@@ -14,6 +15,8 @@ from ..metadata import get_metadata
 from ..models import PlaylistDownloadOptions, VideoDownloadOptions
 from ..workflows import DownloadWorkflows
 from . import jobs
+
+logger = logging.getLogger(__name__)
 
 WEB_DIR = os.path.join(os.path.dirname(__file__), 'web')
 DEFAULT_SAVE_PATH = os.path.join(os.path.expanduser('~'), 'Downloads')
@@ -75,6 +78,7 @@ def create_app(
     @app.post('/api/video-info')
     def api_video_info():
         url = (request.get_json(silent=True) or {}).get('url', '').strip()
+        logger.info("GUI request: video-info %s", url or '(empty)')
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
         try:
@@ -87,6 +91,7 @@ def create_app(
     @app.post('/api/playlist-info')
     def api_playlist_info():
         url = (request.get_json(silent=True) or {}).get('url', '').strip()
+        logger.info("GUI request: playlist-info %s", url or '(empty)')
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
         try:
@@ -130,6 +135,7 @@ def create_app(
             split_chapters=bool(data.get('split_chapters')),
         )
         job = jobs.create_job()
+        logger.info("GUI request: download-video %s (job %s)", url or '(empty)', job.id)
 
         def runner(job: "jobs.Job") -> None:
             info = info_provider.get_video_info(url)
@@ -156,6 +162,7 @@ def create_app(
             numerate=bool(data.get('numerate')),
         )
         job = jobs.create_job()
+        logger.info("GUI request: download-playlist %s (job %s)", url or '(empty)', job.id)
 
         def runner(job: "jobs.Job") -> None:
             info = info_provider.get_playlist_info(url)
@@ -215,6 +222,7 @@ def run_gui(
     app = create_app(info_provider, subtitle_service, workflows)
     port = _free_port()
     url = f'http://127.0.0.1:{port}/'
+    logger.info("Starting GUI server at %s", url)
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     print(f"Youtube Downloader GUI running at {url}  (press Ctrl+C to stop)")
     app.run(host='127.0.0.1', port=port, threaded=True)

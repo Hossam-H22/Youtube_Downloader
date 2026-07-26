@@ -6,9 +6,12 @@ to the browser. Kept deliberately simple: single-process, local app.
 """
 
 import json
+import logging
 import queue
 import threading
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 class Job:
@@ -46,10 +49,12 @@ def run_in_thread(job: Job, target) -> None:
         try:
             target(job)
         except Exception as e:  # noqa: BLE001 - surface any failure to the UI
+            logger.exception("Job %s failed", job.id)
             job.emit(type='error', message=str(e))
         finally:
             job.close()
 
+    logger.info("Starting job %s", job.id)
     threading.Thread(target=_run, daemon=True).start()
 
 

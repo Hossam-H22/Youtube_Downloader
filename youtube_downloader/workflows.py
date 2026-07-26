@@ -5,6 +5,7 @@ sequence that used to live inside ``ConsoleApp``. It performs no user I/O: the
 console and the GUI both call it, supplying their own progress/status callbacks.
 """
 
+import logging
 import os
 
 from .filesystem import create_text_file, ensure_dir
@@ -18,6 +19,8 @@ from .models import (
     VideoInfo,
 )
 from .utils import format_counter
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadWorkflows:
@@ -45,6 +48,10 @@ class DownloadWorkflows:
         named after its title, a ``Link.txt`` is written, and (if the video has
         chapters) the video and subtitles are split into a ``Chapters`` subfolder.
         """
+        logger.info(
+            "Video workflow start: '%s' (subs=%s, split_chapters=%s) -> %s",
+            info.title, options.subtitle_language, options.split_chapters, options.save_path,
+        )
         save_path = options.save_path
         if options.split_chapters:
             save_path = os.path.join(save_path, info.title)
@@ -78,6 +85,8 @@ class DownloadWorkflows:
                     self.chapter_splitter.split_subtitles(subtitle_file, info.chapters, chapters_folder_path)
                 chapters_split = True
 
+        logger.info("Video workflow done: '%s' -> %s (subtitles=%s, chapters_split=%s)",
+                    info.title, save_path, bool(subtitle_file), chapters_split)
         return VideoDownloadResult(
             output_path=save_path,
             subtitle_file=subtitle_file,
@@ -97,6 +106,10 @@ class DownloadWorkflows:
         front-end can report per-video progress. Failed videos are collected and
         returned; re-running skips already-downloaded files.
         """
+        logger.info(
+            "Playlist workflow start: '%s' (%d videos, subs=%s, numerate=%s)",
+            info.title, info.number_videos, options.subtitle_language, options.numerate,
+        )
         save_path = os.path.join(options.save_path, info.title)
         ensure_dir(save_path)
 
@@ -117,6 +130,7 @@ class DownloadWorkflows:
             if on_video is not None:
                 on_video(index + 1, info.number_videos, video_title)
 
+            logger.info("Playlist video %d/%d: %s", index + 1, info.number_videos, video_title)
             if self.downloader.download(video.url, video_title, save_path, progress_hook):
                 if options.subtitle_language:
                     self.subtitle_service.download(
@@ -126,4 +140,6 @@ class DownloadWorkflows:
                 failed_videos.append(f"#{index+1} - {video_title}")
 
         create_text_file(text_file, save_path)
+        logger.info("Playlist workflow done: '%s' -> %s (%d failed)",
+                    info.title, save_path, len(failed_videos))
         return PlaylistDownloadResult(output_path=save_path, failed_videos=failed_videos)

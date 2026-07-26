@@ -4,9 +4,12 @@ Keeps yt-dlp configuration that is shared between the info provider and the
 downloader in one place.
 """
 
+import logging
 import shutil
 
 from .metadata import get_metadata
+
+logger = logging.getLogger(__name__)
 
 # Runtimes yt-dlp can use to solve YouTube's signature ("nsig") challenge,
 # in order of preference (deno is yt-dlp's default/recommended runtime).
@@ -29,8 +32,10 @@ def js_runtime_opts() -> dict:
         return {}
     for runtime in _JS_RUNTIMES:
         if shutil.which(runtime):
+            logger.info("JS runtime enabled for nsig solving: %s", runtime)
             return {
                 'js_runtimes': {runtime: {}},
                 'remote_components': ['ejs:github'],
             }
+    logger.warning("use_js_runtime is on but no JS runtime (deno/node/bun) found on PATH")
     return {}

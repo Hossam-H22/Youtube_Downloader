@@ -1,5 +1,7 @@
 """Video / playlist metadata provider backed by yt-dlp."""
 
+import logging
+
 import yt_dlp
 
 from .interfaces import InfoProvider
@@ -7,11 +9,14 @@ from .models import Chapter, PlaylistInfo, VideoInfo
 from .utils import clean_filename
 from .ytdlp_support import js_runtime_opts
 
+logger = logging.getLogger(__name__)
+
 
 class YtDlpInfoProvider(InfoProvider):
     """Fetches video and playlist metadata using yt-dlp."""
 
     def get_video_info(self, url: str) -> VideoInfo:
+        logger.info("Fetching video info: %s", url)
         ydl_opts = {
             'quiet': True,  # Suppress output
             **js_runtime_opts(),  # opt-in nsig solving (see metadata.json settings)
@@ -29,7 +34,7 @@ class YtDlpInfoProvider(InfoProvider):
             for chapter in raw_chapters
         ]
 
-        return VideoInfo(
+        video = VideoInfo(
             url=url,
             id=info['id'],
             title=clean_filename(info['title']),
@@ -38,8 +43,14 @@ class YtDlpInfoProvider(InfoProvider):
             thumbnail=info['thumbnail'],
             chapters=chapters,
         )
+        logger.info(
+            "Fetched video '%s' (%s, %d chapters)",
+            video.title, video.length, len(chapters),
+        )
+        return video
 
     def get_playlist_info(self, url: str) -> PlaylistInfo:
+        logger.info("Fetching playlist info: %s", url)
         ydl_opts = {
             'quiet': True,        # Suppress output
             'extract_flat': True,  # Only list the playlist entries, don't resolve each video yet
@@ -51,12 +62,17 @@ class YtDlpInfoProvider(InfoProvider):
         video_urls = [
             f"https://www.youtube.com/watch?v={entry['id']}" for entry in entries
         ]
+        logger.info("Playlist '%s' has %d videos; resolving each…",
+                    info.get('title', ''), len(video_urls))
 
         videos_info = [self.get_video_info(video_url) for video_url in video_urls]
 
-        return PlaylistInfo(
+        playlist = PlaylistInfo(
             url=url,
             id=info['id'],
             title=clean_filename(info.get('title', '')),
             videos_info=videos_info,
         )
+        logger.info("Resolved playlist '%s' (%d videos, total %s)",
+                    playlist.title, playlist.number_videos, playlist.length)
+        return playlist

@@ -88,6 +88,20 @@ Please choose number:
    - **Save folder path**
 4. Each video downloads into a folder named after the playlist. Failed videos are listed at the end — re-run the same playlist to retry them (already-downloaded videos are skipped).
 
+## Logs
+
+Every step is logged. Logs always go to a rotating file at
+`logs/youtube_downloader.log` (kept across runs, up to ~4 files). In **GUI mode**
+they also stream to the terminal running the server. In **console mode** the log
+is file-only (so it doesn't clutter the interactive menu) — watch it live with:
+
+```bash
+tail -f logs/youtube_downloader.log
+```
+
+Set the level in `metadata.json` → `"settings": { "log_level": "DEBUG" }` for more
+detail (default `INFO`).
+
 ## Notes & troubleshooting
 
 - **Output format:** best MP4 video + M4A audio, merged by ffmpeg.

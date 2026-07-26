@@ -16,6 +16,7 @@
         "ffmpeg (external binary)"
     ],
     "settings": {
-        "use_js_runtime": true
+        "use_js_runtime": true,
+        "log_level": "INFO"
     }
 }

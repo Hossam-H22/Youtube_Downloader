@@ -1,13 +1,17 @@
 """Filesystem and OS-level side effects (creating files, opening/clearing the console)."""
 
+import logging
 import os
 import subprocess
 import sys
+
+logger = logging.getLogger(__name__)
 
 
 def ensure_dir(path: str) -> None:
     """Create ``path`` (and parents) if it does not already exist."""
     os.makedirs(path, exist_ok=True)
+    logger.debug("Ensured directory exists: %s", path)
 
 
 def create_text_file(lines: list[str], path: str) -> None:
@@ -19,6 +23,7 @@ def create_text_file(lines: list[str], path: str) -> None:
     with open(file_path, 'w', encoding='utf-8') as file:
         for line in lines:
             file.write(line)
+    logger.info("Wrote text file: %s", file_path)
 
 
 def clear_console() -> None:
@@ -33,6 +38,7 @@ def clear_console() -> None:
 
 def open_folder(path: str) -> None:
     """Open ``path`` in the system file explorer, cross-platform."""
+    logger.info("Opening output folder: %s", path)
     try:
         if os.name == 'nt':
             os.startfile(path)
@@ -41,6 +47,7 @@ def open_folder(path: str) -> None:
         else:
             subprocess.run(['xdg-open', path])
     except Exception as e:
+        logger.warning("Could not open folder %s: %s", path, e)
         print(f"Could not open folder: {e}")
 
 
@@ -72,6 +79,9 @@ def pick_folder() -> str:
                 ['zenity', '--file-selection', '--directory'],
                 capture_output=True, text=True,
             )
-        return result.stdout.strip()
-    except Exception:
+        path = result.stdout.strip()
+        logger.info("Folder picker selected: %s", path or "(cancelled)")
+        return path
+    except Exception as e:
+        logger.warning("Folder picker failed: %s", e)
         return ""
