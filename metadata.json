@@ -1,7 +1,7 @@
 {
     "name": "Youtube Downloader",
     "package": "youtube_downloader",
-    "version": "1.1.2",
+    "version": "2.0.0",
     "description": "It is a youtube video downloader with a powerful and easy-to-use application designed to help you download entire playlists or specific videos from YouTube with ease with the ability to choose subtitle language and split the video into chapters. Whether you want to save your favorite videos for offline viewing, create a personal video library, or download educational content",
     "author": {
         "name": "Hossam Hatem",
@@ -14,5 +14,9 @@
         "youtube-transcript-api",
         "pysrt",
         "ffmpeg (external binary)"
-    ]
+    ],
+    "settings": {
+        "use_js_runtime": true,
+        "log_level": "INFO"
+    }
 }

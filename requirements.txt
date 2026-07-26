@@ -1,3 +1,5 @@
 yt-dlp
 youtube-transcript-api
 pysrt
+flask
+imageio-ffmpeg

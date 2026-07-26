@@ -6,9 +6,13 @@ hardcode any of it.
 """
 
 import json
-import os
+import logging
 
-_METADATA_FILE = os.path.join(os.path.dirname(__file__), os.pardir, "metadata.json")
+from .paths import resource_path
+
+logger = logging.getLogger(__name__)
+
+_METADATA_FILE = resource_path("metadata.json")
 
 _FALLBACK = {
     "name": "Youtube Downloader",
@@ -28,7 +32,8 @@ def get_metadata() -> dict:
     try:
         with open(_METADATA_FILE, encoding="utf-8") as f:
             return json.load(f)
-    except (OSError, ValueError):
+    except (OSError, ValueError) as e:
+        logger.warning("Could not read metadata.json (%s); using fallback defaults", e)
         return dict(_FALLBACK)
 
 

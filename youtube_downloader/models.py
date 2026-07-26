@@ -61,3 +61,67 @@ class PlaylistInfo:
         """Human-readable total duration across every video."""
         total_seconds = sum(video.length_seconds for video in self.videos_info)
         return format_video_length(total_seconds)
+
+
+# --------------------------------------------------------------------------- #
+# Download options / results — the parameters a front-end (console or GUI)
+# collects, and the outcome the workflow layer returns.
+# --------------------------------------------------------------------------- #
+@dataclass
+class VideoDownloadOptions:
+    """Choices for downloading a single video.
+
+    ``subtitle_language`` is a language code (e.g. ``"en"``) or ``None`` for no
+    subtitles. ``split_chapters`` also wraps the video in a title folder and
+    writes a ``Link.txt``, matching the console behavior.
+    """
+
+    save_path: str
+    subtitle_language: "str | None" = None
+    split_chapters: bool = False
+
+
+@dataclass
+class PlaylistDownloadOptions:
+    """Choices for downloading a playlist.
+
+    ``selected_indices`` restricts the download to specific videos by their
+    1-based position in the playlist; ``None`` (the default) downloads all.
+    """
+
+    save_path: str
+    subtitle_language: "str | None" = None
+    numerate: bool = False
+    selected_indices: "set[int] | None" = None
+
+
+@dataclass
+class DownloadOutcome:
+    """Result of downloading a single video: success plus a failure reason.
+
+    Truthy when successful, so existing ``if downloader.download(...)`` checks keep
+    working while callers that want the reason can read ``error``.
+    """
+
+    success: bool
+    error: str = ""
+
+    def __bool__(self) -> bool:
+        return self.success
+
+
+@dataclass
+class VideoDownloadResult:
+    """Outcome of a single-video download."""
+
+    output_path: str
+    subtitle_file: str = ""
+    chapters_split: bool = False
+
+
+@dataclass
+class PlaylistDownloadResult:
+    """Outcome of a playlist download, including any per-video failures."""
+
+    output_path: str
+    failed_videos: list[str] = field(default_factory=list)

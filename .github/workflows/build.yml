@@ -1,0 +1,63 @@
+name: Build executables
+
+# Build a standalone one-file executable for each OS. On a version tag (vX.Y.Z)
+# the binaries are attached to the matching GitHub Release; you can also run the
+# workflow manually to get downloadable build artifacts.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: Youtube-Downloader-linux
+          - os: macos-latest
+            artifact: Youtube-Downloader-macos
+          - os: windows-latest
+            artifact: Youtube-Downloader-windows.exe
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Build with PyInstaller
+        run: pyinstaller youtube_downloader.spec
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            mv Youtube-Downloader.exe "${{ matrix.artifact }}"
+          else
+            mv Youtube-Downloader "${{ matrix.artifact }}"
+            chmod +x "${{ matrix.artifact }}"
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.artifact }}

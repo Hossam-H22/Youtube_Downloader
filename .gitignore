@@ -3,3 +3,8 @@ __pycache__
 .idea
 .venv
 output/
+logs/
+
+# PyInstaller build output
+build/
+dist/
