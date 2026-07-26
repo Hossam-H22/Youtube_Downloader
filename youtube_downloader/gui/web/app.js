@@ -491,6 +491,7 @@ function loadLogs() {
 function setLogsOpen(open) {
     const panel = $("logs-panel");
     panel.classList.toggle("hidden", !open);
+    document.body.classList.toggle("logs-open", open);
     $("logs-toggle").classList.toggle("active", open);
     if (open) {
         loadLogs().then(() => {

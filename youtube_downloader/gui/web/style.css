@@ -48,6 +48,8 @@ body {
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .35);
     z-index: 50;
 }
+/* While the panel is open, pad the page so its content can scroll clear of it. */
+body.logs-open { padding-bottom: 40vh; }
 .logs-header {
     display: flex;
     align-items: center;
@@ -71,7 +73,7 @@ body {
     line-height: 1.55;
     color: var(--muted);
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .container { max-width: 720px; margin: 0 auto; padding: 24px 20px 64px; }
