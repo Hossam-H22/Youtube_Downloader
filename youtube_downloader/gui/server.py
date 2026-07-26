@@ -11,6 +11,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 
 from ..filesystem import open_folder, pick_folder
 from ..interfaces import InfoProvider, SubtitleService
+from ..logging_config import LOG_FILE, clear_logs
 from ..metadata import get_metadata
 from ..models import PlaylistDownloadOptions, VideoDownloadOptions
 from ..workflows import DownloadWorkflows
@@ -72,6 +73,32 @@ def create_app(
         meta = dict(get_metadata())
         meta['default_save_path'] = DEFAULT_SAVE_PATH
         return jsonify(meta)
+
+    @app.get('/api/logs')
+    def api_logs():
+        """Return the tail of the rotating log file for the in-app log viewer."""
+        try:
+            limit = min(int(request.args.get('lines', 500)), 5000)
+        except (TypeError, ValueError):
+            limit = 500
+        try:
+            with open(LOG_FILE, encoding='utf-8', errors='replace') as f:
+                lines = f.readlines()
+            return jsonify({'lines': [line.rstrip('\n') for line in lines[-limit:]]})
+        except FileNotFoundError:
+            return jsonify({'lines': []})
+        except OSError as e:  # noqa: BLE001
+            return jsonify({'error': str(e)}), 500
+
+    @app.post('/api/logs/clear')
+    def api_logs_clear():
+        """Empty the log file (used by the in-app log viewer's Clear button)."""
+        logger.info("GUI request: clear logs")
+        try:
+            clear_logs()
+            return jsonify({'ok': True})
+        except OSError as e:  # noqa: BLE001
+            return jsonify({'error': str(e)}), 500
 
     # ------------------------------------------------------------------ #
     # Info fetching

@@ -55,6 +55,28 @@ def setup_logging(to_console: bool = True, level: int = logging.INFO) -> str:
     return LOG_FILE
 
 
+def clear_logs() -> None:
+    """Truncate the log file, reopening the rotating handler's stream cleanly.
+
+    Closes and re-opens the file handler under its lock so the handler keeps
+    writing to the freshly emptied file (a plain truncate would leave the
+    handler appending past the old offset).
+    """
+    logger = logging.getLogger(PACKAGE_LOGGER)
+    for handler in logger.handlers:
+        if isinstance(handler, RotatingFileHandler):
+            handler.acquire()
+            try:
+                if handler.stream:
+                    handler.stream.close()
+                    handler.stream = None
+                open(LOG_FILE, 'w', encoding='utf-8').close()
+                handler.stream = handler._open()
+            finally:
+                handler.release()
+    logger.info("Log file cleared")
+
+
 def get_logger(name: str) -> logging.Logger:
     """Return a logger under the package namespace."""
     return logging.getLogger(name)

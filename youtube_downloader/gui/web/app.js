@@ -463,3 +463,66 @@ $("pl-results").addEventListener("click", (e) => {
 
 wireBrowse("pl-browse", "pl-folder");
 wireOpen("pl-open");
+
+// ------------------------------------------------------------------ //
+// System logs panel
+// ------------------------------------------------------------------ //
+let logsRefreshTimer = null;
+
+function loadLogs() {
+    const content = $("logs-content");
+    return fetch("/api/logs")
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.error) {
+                content.textContent = "Could not load logs: " + data.error;
+                return;
+            }
+            const wasAtBottom =
+                content.scrollTop + content.clientHeight >= content.scrollHeight - 20;
+            content.textContent = (data.lines || []).join("\n") || "(no log entries yet)";
+            if (wasAtBottom) content.scrollTop = content.scrollHeight;
+        })
+        .catch((e) => {
+            content.textContent = "Could not load logs: " + e;
+        });
+}
+
+function setLogsOpen(open) {
+    const panel = $("logs-panel");
+    panel.classList.toggle("hidden", !open);
+    $("logs-toggle").classList.toggle("active", open);
+    if (open) {
+        loadLogs().then(() => {
+            const content = $("logs-content");
+            content.scrollTop = content.scrollHeight;
+        });
+    } else if (logsRefreshTimer) {
+        clearInterval(logsRefreshTimer);
+        logsRefreshTimer = null;
+        $("logs-autorefresh").checked = false;
+    }
+}
+
+$("logs-toggle").addEventListener("click", () =>
+    setLogsOpen($("logs-panel").classList.contains("hidden"))
+);
+$("logs-close").addEventListener("click", () => setLogsOpen(false));
+$("logs-refresh").addEventListener("click", loadLogs);
+$("logs-clear").addEventListener("click", () => {
+    const btn = $("logs-clear");
+    btn.disabled = true;
+    api("/api/logs/clear")
+        .then(() => loadLogs())
+        .finally(() => {
+            btn.disabled = false;
+        });
+});
+$("logs-autorefresh").addEventListener("change", (e) => {
+    if (e.target.checked) {
+        logsRefreshTimer = setInterval(loadLogs, 1000);
+    } else if (logsRefreshTimer) {
+        clearInterval(logsRefreshTimer);
+        logsRefreshTimer = null;
+    }
+});

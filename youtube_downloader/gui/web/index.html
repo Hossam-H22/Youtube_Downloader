@@ -10,6 +10,7 @@
     <header class="app-header">
         <h1 id="app-name">Youtube Downloader</h1>
         <span id="app-meta" class="app-meta"></span>
+        <button id="logs-toggle" class="btn ghost logs-toggle" title="Show system logs">Logs</button>
     </header>
 
     <main class="container">
@@ -115,6 +116,21 @@
             </div>
         </section>
     </main>
+
+    <section id="logs-panel" class="logs-panel hidden">
+        <div class="logs-header">
+            <span class="logs-title">System logs</span>
+            <div class="logs-actions">
+                <label class="check logs-auto">
+                    <input type="checkbox" id="logs-autorefresh"> Auto-refresh
+                </label>
+                <button id="logs-refresh" class="btn ghost">Refresh</button>
+                <button id="logs-clear" class="btn ghost">Clear</button>
+                <button id="logs-close" class="btn ghost">Close</button>
+            </div>
+        </div>
+        <pre id="logs-content" class="logs-content"></pre>
+    </section>
 
     <script src="/static/app.js"></script>
 </body>

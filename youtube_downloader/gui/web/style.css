@@ -31,6 +31,48 @@ body {
 }
 .app-header h1 { margin: 0; font-size: 20px; }
 .app-meta { color: var(--muted); font-size: 13px; }
+.logs-toggle { margin-left: auto; padding: 7px 14px; font-size: 13px; align-self: center; }
+.logs-toggle.active { border-color: var(--accent); color: var(--text); background: var(--surface-2); }
+
+/* System logs panel (docked to the bottom of the viewport) */
+.logs-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 40vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, .35);
+    z-index: 50;
+}
+.logs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+}
+.logs-title { font-size: 14px; font-weight: 600; }
+.logs-actions { display: flex; align-items: center; gap: 8px; }
+.logs-actions .btn { padding: 6px 12px; font-size: 13px; }
+.logs-auto { margin: 0; font-size: 13px; }
+.logs-content {
+    flex: 1;
+    margin: 0;
+    padding: 12px 16px;
+    overflow: auto;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
 
 .container { max-width: 720px; margin: 0 auto; padding: 24px 20px 64px; }
 
