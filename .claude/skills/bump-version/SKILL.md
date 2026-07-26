@@ -33,5 +33,24 @@ The script:
 
 1. Run the `/verify` skill — the menu smoke test should now show the new banner
    (the banner reads `metadata.json`, so no code change is needed).
-2. Commit only if the user asks. Suggested message: `chore: bump version to X.Y.Z`.
-   If they want a tag: `git tag vX.Y.Z`.
+
+2. **Tag the release and push it — but get the user's approval first.**
+   Tagging and pushing are outward-facing, hard-to-reverse actions, so **always
+   ask the user to approve before running them**. Show the exact commands you are
+   about to run and wait for a clear yes. If the user declines, stop here and
+   leave the bump uncommitted for them to handle.
+
+   Once approved, run these steps (a tag must point at a commit, so the bump is
+   committed first):
+
+   ```bash
+   git add metadata.json
+   git commit -m "chore: bump version to X.Y.Z"
+   git tag vX.Y.Z
+   git push               # push the commit on the current branch
+   git push origin vX.Y.Z # push the new tag
+   ```
+
+   Substitute the real `X.Y.Z`. If the current branch has no upstream, use
+   `git push -u origin <branch>` for the first push. Report the outcome of each
+   command (don't claim success if a push failed).

@@ -45,7 +45,10 @@ def main() -> "None":
     old = bump_metadata_json(new_version)
 
     print(f"metadata.json : {old} -> {new_version}")
-    print("done. the app banner picks this up automatically; run /verify, then commit if the user asks.")
+    print(
+        f"done. the app banner picks this up automatically; run /verify, then "
+        f"ask the user to approve tagging (v{new_version}) and pushing before doing either."
+    )
 
 
 if __name__ == "__main__":
