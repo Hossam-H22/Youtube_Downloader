@@ -22,6 +22,7 @@ from . import jobs
 logger = logging.getLogger(__name__)
 
 WEB_DIR = resource_path('youtube_downloader', 'gui', 'web')
+FAVICON = resource_path('youtube-dl.ico')
 DEFAULT_SAVE_PATH = os.path.join(os.path.expanduser('~'), 'Downloads')
 _EMPTY = '(empty)'
 
@@ -69,6 +70,11 @@ def create_app(
     @app.get('/static/<path:filename>')
     def static_files(filename: str):
         return _no_cache(send_from_directory(WEB_DIR, filename))
+
+    @app.get('/favicon.ico')
+    def favicon():
+        directory, filename = os.path.split(FAVICON)
+        return send_from_directory(directory, filename, mimetype='image/x-icon')
 
     @app.get('/api/metadata')
     def api_metadata():

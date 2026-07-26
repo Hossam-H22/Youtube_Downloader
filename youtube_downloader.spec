@@ -17,6 +17,7 @@ from PyInstaller.utils.hooks import collect_all
 # them under sys._MEIPASS at runtime.
 datas = [
     ('metadata.json', '.'),
+    ('youtube-dl.ico', '.'),  # served as the web UI favicon (see gui/server.py)
     ('youtube_downloader/gui/web', 'youtube_downloader/gui/web'),
 ]
 binaries = []
