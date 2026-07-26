@@ -61,3 +61,47 @@ class PlaylistInfo:
         """Human-readable total duration across every video."""
         total_seconds = sum(video.length_seconds for video in self.videos_info)
         return format_video_length(total_seconds)
+
+
+# --------------------------------------------------------------------------- #
+# Download options / results — the parameters a front-end (console or GUI)
+# collects, and the outcome the workflow layer returns.
+# --------------------------------------------------------------------------- #
+@dataclass
+class VideoDownloadOptions:
+    """Choices for downloading a single video.
+
+    ``subtitle_language`` is a language code (e.g. ``"en"``) or ``None`` for no
+    subtitles. ``split_chapters`` also wraps the video in a title folder and
+    writes a ``Link.txt``, matching the console behavior.
+    """
+
+    save_path: str
+    subtitle_language: "str | None" = None
+    split_chapters: bool = False
+
+
+@dataclass
+class PlaylistDownloadOptions:
+    """Choices for downloading a playlist."""
+
+    save_path: str
+    subtitle_language: "str | None" = None
+    numerate: bool = False
+
+
+@dataclass
+class VideoDownloadResult:
+    """Outcome of a single-video download."""
+
+    output_path: str
+    subtitle_file: str = ""
+    chapters_split: bool = False
+
+
+@dataclass
+class PlaylistDownloadResult:
+    """Outcome of a playlist download, including any per-video failures."""
+
+    output_path: str
+    failed_videos: list[str] = field(default_factory=list)

@@ -1,38 +1,30 @@
 """The interactive console application.
 
-``ConsoleApp`` owns all user interaction (menu, prompts, printing) and
-orchestrates the injected services. It depends only on the abstract interfaces,
-never on the concrete yt-dlp / transcript-api / ffmpeg implementations.
+``ConsoleApp`` owns all user interaction (menu, prompts, printing) and delegates
+the actual downloading to the shared :class:`DownloadWorkflows`. It depends only
+on abstractions, never on the concrete yt-dlp / transcript-api / ffmpeg classes.
 """
 
-import os
-
-from .filesystem import clear_console, create_text_file, ensure_dir, open_folder
-from .interfaces import (
-    ChapterSplitter,
-    InfoProvider,
-    SubtitleService,
-    VideoDownloader,
-)
+from .filesystem import clear_console, open_folder
+from .interfaces import InfoProvider, SubtitleService
 from .metadata import get_metadata
-from .models import Chapter, PlaylistInfo
-from .utils import clean_filename, format_counter, format_video_length
+from .models import Chapter, PlaylistDownloadOptions, PlaylistInfo, VideoDownloadOptions
+from .utils import clean_filename, format_video_length
+from .workflows import DownloadWorkflows
 
 
 class ConsoleApp:
-    """Wires the download services together behind an interactive menu."""
+    """Drives the download workflows behind an interactive menu."""
 
     def __init__(
         self,
         info_provider: InfoProvider,
-        downloader: VideoDownloader,
         subtitle_service: SubtitleService,
-        chapter_splitter: ChapterSplitter,
+        workflows: DownloadWorkflows,
     ) -> None:
         self.info_provider = info_provider
-        self.downloader = downloader
         self.subtitle_service = subtitle_service
-        self.chapter_splitter = chapter_splitter
+        self.workflows = workflows
 
     # ------------------------------------------------------------------ #
     # Presentation helpers
@@ -57,6 +49,12 @@ class ConsoleApp:
             chapter_title = clean_filename(chapter.title)
             duration = format_video_length(int(chapter.end_time - chapter.start_time))
             print(f"    {index+1}. {chapter_title}  =>  {duration}")
+
+    def _language_for_choice(self, transcript_list: list[str], subtitle_choise: int) -> "str | None":
+        """Map a numeric subtitle menu choice to a language code (or None)."""
+        if transcript_list and 1 <= subtitle_choise <= len(transcript_list):
+            return transcript_list[subtitle_choise - 1]
+        return None
 
     # ------------------------------------------------------------------ #
     # Video flow
@@ -83,43 +81,18 @@ class ConsoleApp:
             folder_path = input("\nPlease enter the path to the folder where you want to save: ")
 
             create_video_folder = input("\nSplit video to chapters if exist: Y or N ?  ")
-
-            if create_video_folder == 'Y' or create_video_folder == 'y':
-                create_video_folder = True
-                folder_path = os.path.join(folder_path, info.title)
-                ensure_dir(folder_path)
-            else:
-                create_video_folder = False
+            split_chapters = create_video_folder in ('Y', 'y')
 
             print("\nStart Downloading ... \n")
-            self.downloader.download(info.url, info.title, folder_path)
-            subtitle_file_path = ""
-            if len(info.transcript_list) > 0 and subtitle_choise <= len(info.transcript_list):
-                subtitle_file_path = self.subtitle_service.download(
-                    info.id, info.title, folder_path, info.transcript_list[subtitle_choise - 1]
-                )
-
-            if create_video_folder:
-                text_file = [
-                    "Video Url: \n",
-                    info.url,
-                    "\n\n\n\n\n\n\n\n\n\n",
-                    f"Title: \n{info.title}\n\n",
-                    "Description: \n",
-                    info.description
-                ]
-                create_text_file(text_file, folder_path)
-                video_path = os.path.join(folder_path, f"{info.title}.mp4")
-                chapters = info.chapters
-                if chapters:
-                    chapters_folder_path = os.path.join(folder_path, 'Chapters')
-                    ensure_dir(chapters_folder_path)
-                    self.chapter_splitter.split_video(video_path, chapters, chapters_folder_path)
-                    if len(subtitle_file_path) > 0:
-                        self.chapter_splitter.split_subtitles(subtitle_file_path, chapters, chapters_folder_path)
+            options = VideoDownloadOptions(
+                save_path=folder_path,
+                subtitle_language=self._language_for_choice(info.transcript_list, subtitle_choise),
+                split_chapters=split_chapters,
+            )
+            result = self.workflows.download_video(info, options)
 
             print("\nDownload Finished\n\n")
-            open_folder(folder_path)
+            open_folder(result.output_path)
 
     # ------------------------------------------------------------------ #
     # Playlist flow
@@ -149,46 +122,32 @@ class ConsoleApp:
             subtitle_choise = self.print_subtitles(info.transcript_list)
 
             numerate_choice = input("\nNumerated Playlist: Y or N ?  ")
-            if numerate_choice == 'y' or numerate_choice == 'Y': numerate_choice = True
-            else: numerate_choice = False
+            numerate = numerate_choice in ('y', 'Y')
 
             folder_path = input("\nPlease enter the path to the folder where you want to save: ")
 
             print("\nStart Downloading ... \n")
-            folder_path = os.path.join(folder_path, info.title)
-            ensure_dir(folder_path)
 
-            text_file = ["Playlist Url: \n", info.url, "\n\n\n\n\n\n\n\n\n\n", "Videos Information: \n\n\n\n"]
-            failed_videos = []
-            for index, video in enumerate(info.videos_info):
-                if numerate_choice: video_title = f"{format_counter(index+1, info.number_videos)}{video.title}"
-                else: video_title = video.title
+            options = PlaylistDownloadOptions(
+                save_path=folder_path,
+                subtitle_language=self._language_for_choice(info.transcript_list, subtitle_choise),
+                numerate=numerate,
+            )
 
-                text_file.append(f"Video #{index+1}\n")
-                text_file.append("====================================\n")
-                text_file.append(f"Title: {video_title}\n")
-                text_file.append(f"Description: {video.description} \n")
-                text_file.append("====================================\n\n\n\n\n\n\n")
+            def on_video(index: int, total: int, title: str) -> None:
+                print(f"\n[{index}/{total}] Downloading: {title}\n")
 
-                print(f"\n[{index+1}/{info.number_videos}] Downloading: {video_title}\n")
-                if self.downloader.download(video.url, video_title, folder_path):
-                    if len(info.transcript_list) > subtitle_choise-1:
-                        self.subtitle_service.download(
-                            video.id, video_title, folder_path, info.transcript_list[subtitle_choise - 1]
-                        )
-                else:
-                    failed_videos.append(f"#{index+1} - {video_title}")
+            result = self.workflows.download_playlist(info, options, on_video=on_video)
 
-            create_text_file(text_file, folder_path)
             print("\nDownload Finished\n")
-            if failed_videos:
-                print(f"{len(failed_videos)} video(s) failed to download:")
-                for failed in failed_videos:
+            if result.failed_videos:
+                print(f"{len(result.failed_videos)} video(s) failed to download:")
+                for failed in result.failed_videos:
                     print(f"    {failed}")
                 print("Re-run the playlist to retry them (already-downloaded videos are skipped).\n")
             else:
                 print("\n")
-            open_folder(folder_path)
+            open_folder(result.output_path)
 
     # ------------------------------------------------------------------ #
     # Menu loop

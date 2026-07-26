@@ -27,10 +27,19 @@ class VideoDownloader(ABC):
     """Downloads a video to disk."""
 
     @abstractmethod
-    def download(self, url: str, title: str, output_path: str = '.') -> bool:
+    def download(
+        self,
+        url: str,
+        title: str,
+        output_path: str = '.',
+        progress_hook=None,
+    ) -> bool:
         """Download ``url`` as ``title`` into ``output_path``.
 
-        Returns ``True`` on success, ``False`` on failure.
+        ``progress_hook`` is an optional callable invoked with progress updates
+        (the yt-dlp hook contract). Passing ``None`` disables progress reporting,
+        which is the console default. Returns ``True`` on success, ``False`` on
+        failure.
         """
 
 

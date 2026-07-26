@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Youtube Downloader</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1 id="app-name">Youtube Downloader</h1>
+        <span id="app-meta" class="app-meta"></span>
+    </header>
+
+    <main class="container">
+        <div class="tabs">
+            <button class="tab active" data-tab="video">Video</button>
+            <button class="tab" data-tab="playlist">Playlist</button>
+        </div>
+
+        <!-- ---------------------------- Video ---------------------------- -->
+        <section id="tab-video" class="panel active">
+            <div class="url-row">
+                <input type="text" id="video-url" placeholder="Paste a YouTube video URL…">
+                <button id="video-fetch" class="btn">Fetch</button>
+            </div>
+            <div id="video-error" class="error hidden"></div>
+
+            <div id="video-info" class="info-card hidden">
+                <img id="video-thumb" class="thumb" alt="thumbnail">
+                <div class="info-body">
+                    <h2 id="video-title"></h2>
+                    <p class="muted"><span id="video-duration"></span> <span id="video-chapters"></span></p>
+
+                    <label class="field">
+                        <span>Subtitles</span>
+                        <select id="video-subs"></select>
+                    </label>
+
+                    <label class="check">
+                        <input type="checkbox" id="video-split"> Split video into chapters (if any)
+                    </label>
+
+                    <label class="field">
+                        <span>Save to folder</span>
+                        <div class="folder-row">
+                            <input type="text" id="video-folder">
+                            <button id="video-browse" class="btn ghost">Browse…</button>
+                        </div>
+                    </label>
+
+                    <button id="video-download" class="btn primary">Download</button>
+                </div>
+            </div>
+
+            <div id="video-progress" class="progress-area hidden">
+                <div class="bar"><div id="video-bar" class="bar-fill"></div></div>
+                <p id="video-status" class="status"></p>
+                <button id="video-open" class="btn hidden">Open output folder</button>
+            </div>
+        </section>
+
+        <!-- --------------------------- Playlist -------------------------- -->
+        <section id="tab-playlist" class="panel">
+            <div class="url-row">
+                <input type="text" id="pl-url" placeholder="Paste a YouTube playlist URL…">
+                <button id="pl-fetch" class="btn">Fetch</button>
+            </div>
+            <div id="pl-error" class="error hidden"></div>
+
+            <div id="pl-info" class="info-card hidden">
+                <div class="info-body">
+                    <h2 id="pl-title"></h2>
+                    <p class="muted"><span id="pl-count"></span> · <span id="pl-duration"></span></p>
+
+                    <label class="field">
+                        <span>Subtitles</span>
+                        <select id="pl-subs"></select>
+                    </label>
+
+                    <label class="check">
+                        <input type="checkbox" id="pl-numerate"> Numerate files (01. 02. …)
+                    </label>
+
+                    <label class="field">
+                        <span>Save to folder</span>
+                        <div class="folder-row">
+                            <input type="text" id="pl-folder">
+                            <button id="pl-browse" class="btn ghost">Browse…</button>
+                        </div>
+                    </label>
+
+                    <button id="pl-download" class="btn primary">Download playlist</button>
+                </div>
+            </div>
+
+            <div id="pl-progress" class="progress-area hidden">
+                <div class="bar"><div id="pl-bar" class="bar-fill"></div></div>
+                <p id="pl-status" class="status"></p>
+                <ul id="pl-log" class="log"></ul>
+                <button id="pl-open" class="btn hidden">Open output folder</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
