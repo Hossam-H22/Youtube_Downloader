@@ -36,11 +36,28 @@ How to set up and run the console application (`main.py`).
 
 ## Run
 
+The app has two front-ends that share the same download engine.
+
+### Web GUI (default)
+
 ```bash
 python main.py
 ```
 
-You'll see an interactive menu:
+This starts a small local web server and opens the app in your default browser
+(a URL like `http://127.0.0.1:<port>/` is also printed in the terminal). Use the
+**Video** / **Playlist** tabs: paste a URL, click **Fetch**, choose a subtitle
+language and options, pick a folder, and click **Download** — a progress bar shows
+live status and an **Open output folder** button appears when it finishes. Press
+`Ctrl+C` in the terminal to stop the server.
+
+### Console mode
+
+```bash
+python main.py --console-view
+```
+
+You'll see the interactive menu:
 
 ```
 Please choose number:
@@ -49,7 +66,7 @@ Please choose number:
 3 - Quit
 ```
 
-### Download a single video (option 1)
+### Download a single video (option 1, console)
 
 1. Paste the YouTube video URL.
 2. The app shows the title, duration, available subtitles, and chapters.
@@ -60,7 +77,7 @@ Please choose number:
    - **Split video to chapters if exist: Y or N?** — when `Y`, the video is wrapped in a folder named after the title, a `Link.txt` (URL + description) is written, and the video/subtitles are split into a `Chapters/` subfolder (requires chapters + ffmpeg).
 4. When finished, the output folder opens automatically.
 
-### Download a playlist (option 2)
+### Download a playlist (option 2, console)
 
 1. Paste the YouTube playlist URL.
 2. The app shows the title, video count, total duration, and available subtitles.

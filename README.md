@@ -5,7 +5,12 @@ Video Downloader is a powerful and easy-to-use application designed to help you 
 
 ## Running from source
 
-See **[RUN.md](RUN.md)** for step-by-step instructions on installing the prerequisites, setting up a virtual environment, and running `main.py`.
+Two ways to run it, sharing the same download engine:
+
+- **Web GUI (default):** `python main.py` — opens a local web app in your browser.
+- **Console:** `python main.py --console-view` — the interactive terminal menu.
+
+See **[RUN.md](RUN.md)** for step-by-step instructions on installing the prerequisites, setting up a virtual environment, and running either mode.
 
 
 
