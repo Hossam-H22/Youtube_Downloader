@@ -390,32 +390,8 @@ def start_program():
         clear_console()
 
 
-def split_downloaded_video_and_subtitle_into_chapters():
-    url = input("video url: ")
-    info = get_youtube_video_info(url)
-    if info['chapters']:
-        print(f"Num of chapters: {len(info['chapters'])} \n")
-        folder_path = input("folder path: ")
-        if folder_path.startswith('"'): folder_path = folder_path[1:]
-        if folder_path.endswith('"'): folder_path = folder_path[:-1]
-        video_path = input("video path: ")
-        if video_path.startswith('"'): video_path = video_path[1:]
-        if video_path.endswith('"'): video_path = video_path[:-1]
-        subtitleFilePath = input("subtitle path: ")
-        if subtitleFilePath.startswith('"'): subtitleFilePath = subtitleFilePath[1:]
-        if subtitleFilePath.endswith('"'): subtitleFilePath = subtitleFilePath[:-1]
-        Chapters_folder_path = os.path.join(folder_path, 'Chapters')
-        os.makedirs(Chapters_folder_path, exist_ok=True)
-        split_video_into_chapters(video_path, info['chapters'], Chapters_folder_path)
-        if len(subtitleFilePath) > 0:
-            split_subtitles_into_chapters(subtitleFilePath, info['chapters'], Chapters_folder_path)
-
-
-
 if __name__ == '__main__':
     start_program()
-
-    # split_downloaded_video_and_subtitle_into_chapters()
 
 
 
