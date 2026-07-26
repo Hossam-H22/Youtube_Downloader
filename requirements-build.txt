@@ -1,0 +1,3 @@
+# Build-only dependencies for producing the standalone executables.
+# Install alongside requirements.txt when freezing:  pip install -r requirements.txt -r requirements-build.txt
+pyinstaller

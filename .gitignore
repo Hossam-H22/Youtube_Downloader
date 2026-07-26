@@ -4,3 +4,7 @@ __pycache__
 .venv
 output/
 logs/
+
+# PyInstaller build output
+build/
+dist/

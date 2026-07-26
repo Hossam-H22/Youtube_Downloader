@@ -10,8 +10,10 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+from .paths import writable_dir
+
 PACKAGE_LOGGER = 'youtube_downloader'
-_LOG_DIR = os.path.join(os.path.dirname(__file__), os.pardir, 'logs')
+_LOG_DIR = os.path.join(writable_dir(), 'logs')
 LOG_FILE = os.path.join(_LOG_DIR, 'youtube_downloader.log')
 _FORMAT = '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
 

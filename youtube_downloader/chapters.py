@@ -6,6 +6,7 @@ import subprocess
 
 from pysrt import SubRipFile, SubRipItem
 
+from .ffmpeg_support import ffmpeg_location
 from .interfaces import ChapterSplitter
 from .models import Chapter
 from .utils import clean_filename, format_counter, seconds_to_srt_time
@@ -28,7 +29,7 @@ class FfmpegChapterSplitter(ChapterSplitter):
             video_index = format_counter(index, len(chapters))
             chapter_file = os.path.join(output_path, f"{video_index}{chapter_title}.mp4")
             command = [
-                'ffmpeg', '-i', video_path,
+                ffmpeg_location(), '-i', video_path,
                 '-ss', str(start_time), '-to', str(end_time),
                 '-c', 'copy', chapter_file
             ]

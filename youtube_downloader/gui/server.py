@@ -14,12 +14,13 @@ from ..interfaces import InfoProvider, SubtitleService
 from ..logging_config import LOG_FILE, clear_logs
 from ..metadata import get_metadata
 from ..models import PlaylistDownloadOptions, VideoDownloadOptions
+from ..paths import resource_path
 from ..workflows import DownloadWorkflows
 from . import jobs
 
 logger = logging.getLogger(__name__)
 
-WEB_DIR = os.path.join(os.path.dirname(__file__), 'web')
+WEB_DIR = resource_path('youtube_downloader', 'gui', 'web')
 DEFAULT_SAVE_PATH = os.path.join(os.path.expanduser('~'), 'Downloads')
 _EMPTY = '(empty)'
 

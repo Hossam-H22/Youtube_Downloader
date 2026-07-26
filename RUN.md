@@ -102,6 +102,26 @@ tail -f logs/youtube_downloader.log
 Set the level in `metadata.json` → `"settings": { "log_level": "DEBUG" }` for more
 detail (default `INFO`).
 
+## Building standalone executables
+
+End users don't need any of the above — they can download a one-file build from the
+[Releases page](https://github.com/Hossam-H22/Youtube_Downloader/releases). Those
+builds are produced by **PyInstaller** and bundle Python, all packages, and a static
+**ffmpeg** (via the `imageio-ffmpeg` dependency), so nothing needs to be installed.
+
+To build one locally for your current OS:
+
+```bash
+pip install -r requirements.txt -r requirements-build.txt
+pyinstaller youtube_downloader.spec
+```
+
+The executable lands in `dist/` (`Youtube-Downloader` / `Youtube-Downloader.exe`).
+PyInstaller **cannot cross-compile** — a macOS binary must be built on macOS,
+Windows on Windows, Linux on Linux. All three are built automatically by the
+GitHub Actions workflow (`.github/workflows/build.yml`) and attached to the release
+when a `vX.Y.Z` tag is pushed. The build settings live in `youtube_downloader.spec`.
+
 ## Notes & troubleshooting
 
 - **Output format:** best MP4 video + M4A audio, merged by ffmpeg.

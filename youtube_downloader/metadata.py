@@ -7,11 +7,12 @@ hardcode any of it.
 
 import json
 import logging
-import os
+
+from .paths import resource_path
 
 logger = logging.getLogger(__name__)
 
-_METADATA_FILE = os.path.join(os.path.dirname(__file__), os.pardir, "metadata.json")
+_METADATA_FILE = resource_path("metadata.json")
 
 _FALLBACK = {
     "name": "Youtube Downloader",

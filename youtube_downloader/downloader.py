@@ -4,6 +4,7 @@ import logging
 
 import yt_dlp
 
+from .ffmpeg_support import ffmpeg_location
 from .interfaces import VideoDownloader
 from .models import DownloadOutcome
 from .ytdlp_support import js_runtime_opts
@@ -37,6 +38,7 @@ class YtDlpDownloader(VideoDownloader):
                 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]'
             ),
             'merge_output_format': 'mp4',  # always produce a .mp4 (chapter split relies on it)
+            'ffmpeg_location': ffmpeg_location(),  # use the bundled ffmpeg for the stream merge
             'noplaylist': True,       # Only download single video, not the whole playlist
             'retries': 10,            # Retry the whole download on network errors
             'fragment_retries': 10,   # Retry individual fragments (fixes "Connection reset by peer")
