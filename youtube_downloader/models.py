@@ -91,6 +91,21 @@ class PlaylistDownloadOptions:
 
 
 @dataclass
+class DownloadOutcome:
+    """Result of downloading a single video: success plus a failure reason.
+
+    Truthy when successful, so existing ``if downloader.download(...)`` checks keep
+    working while callers that want the reason can read ``error``.
+    """
+
+    success: bool
+    error: str = ""
+
+    def __bool__(self) -> bool:
+        return self.success
+
+
+@dataclass
 class VideoDownloadResult:
     """Outcome of a single-video download."""
 

@@ -5,6 +5,7 @@ import logging
 import yt_dlp
 
 from .interfaces import VideoDownloader
+from .models import DownloadOutcome
 from .ytdlp_support import js_runtime_opts
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class YtDlpDownloader(VideoDownloader):
         title: str,
         output_path: str = '.',
         progress_hook=None,
-    ) -> bool:
+    ) -> DownloadOutcome:
         ydl_opts = {
             'outtmpl': f'{output_path}/{title}.%(ext)s',
             # Prefer H.264 (avc1) MP4 from the reliable clients, then any MP4.
@@ -59,11 +60,11 @@ class YtDlpDownloader(VideoDownloader):
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([url])
                 logger.info("Downloaded '%s'", title)
-                return True
+                return DownloadOutcome(success=True)
             except Exception as e:
                 last_error = e
                 logger.warning("Attempt %d/3 failed for '%s': %s", attempt, title, e)
                 print(f"\nAttempt {attempt}/3 failed for '{title}': {e}")
         logger.error("Failed to download '%s' after 3 attempts: %s", title, last_error)
         print(f"\nFailed to download '{title}': {last_error}\n")
-        return False
+        return DownloadOutcome(success=False, error=str(last_error))

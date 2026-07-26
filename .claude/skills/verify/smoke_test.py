@@ -29,6 +29,7 @@ from youtube_downloader.interfaces import (
 )
 from youtube_downloader.models import (
     Chapter,
+    DownloadOutcome,
     PlaylistDownloadOptions,
     PlaylistInfo,
     VideoDownloadOptions,
@@ -84,7 +85,9 @@ class _FakeDownloader(VideoDownloader):
 
     def download(self, url, title, output_path='.', progress_hook=None):
         self.calls.append(title)
-        return title not in self.fail_titles
+        if title in self.fail_titles:
+            return DownloadOutcome(success=False, error=f"failed: {title}")
+        return DownloadOutcome(success=True)
 
 
 class _FakeSubs(SubtitleService):
@@ -144,14 +147,23 @@ def test_workflow_playlist(playlist):
     with tempfile.TemporaryDirectory() as tmp:
         dl = _FakeDownloader(fail_titles={"t2"})  # second video "fails"
         events = []
+        results = []
         result = _workflows(dl).download_playlist(
             playlist,
             PlaylistDownloadOptions(save_path=tmp, subtitle_language=None, numerate=False),
             on_video=lambda i, total, title: events.append((i, total, title)),
+            on_video_result=lambda i, total, video, title, path, outcome: results.append(
+                (title, bool(outcome), getattr(outcome, 'error', ''))
+            ),
         )
         assert len(events) == 2               # on_video fired for both videos
         assert dl.calls == ["t", "t2"]
-        assert result.failed_videos == ["#2 - t2"]
+        # failure reason is captured and included in the failed list
+        assert result.failed_videos == ["#2 - t2: failed: t2"]
+        # per-video results: first ok (no error), second failed with reason
+        assert len(results) == 2
+        assert results[0] == ("t", True, "")
+        assert results[1][0] == "t2" and results[1][1] is False and "t2" in results[1][2]
 
 
 def test_js_runtime_opts():
@@ -201,6 +213,13 @@ def test_flask_offline(video, playlist):
     assert len(body["videos"]) == 2
     assert body["videos"][0]["index"] == 1
     assert "title" in body["videos"][0] and "length" in body["videos"][0]
+
+    # /api/retry-video starts a background retry job and returns its id
+    retry = client.post("/api/retry-video", json={
+        "url": "u", "id": "i", "title": "t", "save_path": "/tmp",
+    })
+    assert retry.status_code == 200
+    assert "job_id" in retry.get_json()
 
 
 if __name__ == '__main__':

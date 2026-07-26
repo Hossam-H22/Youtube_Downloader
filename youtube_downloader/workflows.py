@@ -98,13 +98,16 @@ class DownloadWorkflows:
         info: PlaylistInfo,
         options: PlaylistDownloadOptions,
         on_video=None,
+        on_video_result=None,
         progress_hook=None,
     ) -> PlaylistDownloadResult:
         """Download every video in a playlist into a folder named after it.
 
-        ``on_video(index, total, title)`` is called before each video starts so a
-        front-end can report per-video progress. Failed videos are collected and
-        returned; re-running skips already-downloaded files.
+        ``on_video(index, total, title)`` is called before each video starts.
+        ``on_video_result(index, total, video, title, save_path, outcome)`` is
+        called after each, so a front-end can show per-video success/failure (with
+        the reason in ``outcome.error``) and offer a retry. Failed videos are also
+        collected and returned; re-running skips already-downloaded files.
         """
         logger.info(
             "Playlist workflow start: '%s' (%d videos, subs=%s, numerate=%s)",
@@ -131,15 +134,39 @@ class DownloadWorkflows:
                 on_video(index + 1, info.number_videos, video_title)
 
             logger.info("Playlist video %d/%d: %s", index + 1, info.number_videos, video_title)
-            if self.downloader.download(video.url, video_title, save_path, progress_hook):
+            outcome = self.downloader.download(video.url, video_title, save_path, progress_hook)
+            if outcome:
                 if options.subtitle_language:
                     self.subtitle_service.download(
                         video.id, video_title, save_path, options.subtitle_language
                     )
             else:
-                failed_videos.append(f"#{index+1} - {video_title}")
+                reason = getattr(outcome, 'error', '')
+                failed_videos.append(f"#{index+1} - {video_title}" + (f": {reason}" if reason else ""))
+
+            if on_video_result is not None:
+                on_video_result(index + 1, info.number_videos, video, video_title, save_path, outcome)
 
         create_text_file(text_file, save_path)
         logger.info("Playlist workflow done: '%s' -> %s (%d failed)",
                     info.title, save_path, len(failed_videos))
         return PlaylistDownloadResult(output_path=save_path, failed_videos=failed_videos)
+
+    def retry_video(
+        self,
+        url: str,
+        video_id: str,
+        title: str,
+        save_path: str,
+        subtitle_language: "str | None" = None,
+        progress_hook=None,
+    ):
+        """Re-download a single (already-named) playlist video into ``save_path``.
+
+        Used by the GUI's per-video retry. Returns the :class:`DownloadOutcome`.
+        """
+        logger.info("Retrying video '%s' -> %s", title, save_path)
+        outcome = self.downloader.download(url, title, save_path, progress_hook)
+        if outcome and subtitle_language:
+            self.subtitle_service.download(video_id, title, save_path, subtitle_language)
+        return outcome

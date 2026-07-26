@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 WEB_DIR = os.path.join(os.path.dirname(__file__), 'web')
 DEFAULT_SAVE_PATH = os.path.join(os.path.expanduser('~'), 'Downloads')
+_EMPTY = '(empty)'
 
 
 def _progress_hook(job: "jobs.Job"):
@@ -78,7 +79,7 @@ def create_app(
     @app.post('/api/video-info')
     def api_video_info():
         url = (request.get_json(silent=True) or {}).get('url', '').strip()
-        logger.info("GUI request: video-info %s", url or '(empty)')
+        logger.info("GUI request: video-info %s", url or _EMPTY)
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
         try:
@@ -91,7 +92,7 @@ def create_app(
     @app.post('/api/playlist-info')
     def api_playlist_info():
         url = (request.get_json(silent=True) or {}).get('url', '').strip()
-        logger.info("GUI request: playlist-info %s", url or '(empty)')
+        logger.info("GUI request: playlist-info %s", url or _EMPTY)
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
         try:
@@ -135,7 +136,7 @@ def create_app(
             split_chapters=bool(data.get('split_chapters')),
         )
         job = jobs.create_job()
-        logger.info("GUI request: download-video %s (job %s)", url or '(empty)', job.id)
+        logger.info("GUI request: download-video %s (job %s)", url or _EMPTY, job.id)
 
         def runner(job: "jobs.Job") -> None:
             info = info_provider.get_video_info(url)
@@ -162,7 +163,7 @@ def create_app(
             numerate=bool(data.get('numerate')),
         )
         job = jobs.create_job()
-        logger.info("GUI request: download-playlist %s (job %s)", url or '(empty)', job.id)
+        logger.info("GUI request: download-playlist %s (job %s)", url or _EMPTY, job.id)
 
         def runner(job: "jobs.Job") -> None:
             info = info_provider.get_playlist_info(url)
@@ -170,10 +171,43 @@ def create_app(
             def on_video(index: int, total: int, title: str) -> None:
                 job.emit(type='video', index=index, total=total, title=title)
 
+            def on_video_result(index, total, video, title, save_path, outcome) -> None:
+                job.emit(
+                    type='video_result',
+                    index=index, total=total, title=title,
+                    url=video.url, id=video.id, save_path=save_path,
+                    success=bool(outcome), error=getattr(outcome, 'error', ''),
+                )
+
             result = workflows.download_playlist(
-                info, options, on_video=on_video, progress_hook=_progress_hook(job)
+                info, options, on_video=on_video, on_video_result=on_video_result,
+                progress_hook=_progress_hook(job),
             )
             job.emit(type='done', output_path=result.output_path, failed_videos=result.failed_videos)
+
+        jobs.run_in_thread(job, runner)
+        return jsonify({'job_id': job.id})
+
+    @app.post('/api/retry-video')
+    def api_retry_video():
+        data = request.get_json(silent=True) or {}
+        url = (data.get('url') or '').strip()
+        video_id = data.get('id') or ''
+        title = data.get('title') or ''
+        save_path = data.get('save_path') or DEFAULT_SAVE_PATH
+        subtitle_language = data.get('subtitle_language') or None
+        job = jobs.create_job()
+        logger.info("GUI request: retry-video '%s' (job %s)", title or _EMPTY, job.id)
+
+        def runner(job: "jobs.Job") -> None:
+            outcome = workflows.retry_video(
+                url, video_id, title, save_path, subtitle_language,
+                progress_hook=_progress_hook(job),
+            )
+            job.emit(
+                type='done', title=title, output_path=save_path,
+                success=bool(outcome), error=getattr(outcome, 'error', ''),
+            )
 
         jobs.run_in_thread(job, runner)
         return jsonify({'job_id': job.id})

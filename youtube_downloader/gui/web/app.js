@@ -67,7 +67,10 @@ function runJob(endpoint, payload, ui) {
     ui.status.classList.remove("done");
     ui.bar.style.width = "0%";
     ui.status.textContent = "Starting…";
-    if (ui.log) ui.log.innerHTML = "";
+    if (ui.results) {
+        ui.results.innerHTML = "";
+        ui.rows = {};
+    }
     ui.download.disabled = true;
 
     api(endpoint, payload).then(({ job_id, error }) => {
@@ -76,50 +79,126 @@ function runJob(endpoint, payload, ui) {
             ui.download.disabled = false;
             return;
         }
-        const es = new EventSource("/api/progress/" + job_id);
-        es.onmessage = (e) => {
-            const ev = JSON.parse(e.data);
-            if (ev.type === "progress") {
-                ui.bar.style.width = (ev.percent || 0) + "%";
-                ui.status.textContent =
-                    ev.stage === "processing"
-                        ? "Processing…"
-                        : `Downloading… ${ev.percent || 0}%` + (ev.speed ? ` (${fmtSpeed(ev.speed)})` : "");
-            } else if (ev.type === "status") {
-                ui.status.textContent = ev.message;
-            } else if (ev.type === "video" && ui.log) {
-                const li = document.createElement("li");
-                li.textContent = `[${ev.index}/${ev.total}] ${ev.title}`;
-                ui.log.appendChild(li);
-                ui.log.scrollTop = ui.log.scrollHeight;
-                ui.bar.style.width = "0%";
-            } else if (ev.type === "error") {
-                ui.status.textContent = "Error: " + ev.message;
-                ui.download.disabled = false;
-                es.close();
-            } else if (ev.type === "done") {
-                ui.bar.style.width = "100%";
-                ui.status.textContent = "Done!";
-                ui.status.classList.add("done");
-                if (ev.failed_videos && ev.failed_videos.length && ui.log) {
-                    ev.failed_videos.forEach((f) => {
-                        const li = document.createElement("li");
-                        li.className = "fail";
-                        li.textContent = "Failed: " + f;
-                        ui.log.appendChild(li);
-                    });
-                }
-                ui.open.dataset.path = ev.output_path || "";
-                ui.open.classList.remove("hidden");
-                ui.download.disabled = false;
-                es.close();
-            }
-        };
-        es.onerror = () => {
+        streamJob(job_id, ui);
+    });
+}
+
+function streamJob(job_id, ui) {
+    const es = new EventSource("/api/progress/" + job_id);
+    es.onmessage = (e) => {
+        const ev = JSON.parse(e.data);
+        if (ev.type === "progress") {
+            ui.bar.style.width = (ev.percent || 0) + "%";
+            ui.status.textContent =
+                ev.stage === "processing"
+                    ? "Processing…"
+                    : `Downloading… ${ev.percent || 0}%` + (ev.speed ? ` (${fmtSpeed(ev.speed)})` : "");
+        } else if (ev.type === "status") {
+            ui.status.textContent = ev.message;
+        } else if (ev.type === "video") {
+            if (ui.results) setVideoRow(ui, ev.index, ev.title, "downloading");
+            ui.bar.style.width = "0%";
+            ui.status.textContent = `[${ev.index}/${ev.total}] ${ev.title}`;
+        } else if (ev.type === "video_result") {
+            if (ui.results) setVideoRow(ui, ev.index, ev.title, ev.success ? "success" : "failed", ev);
+        } else if (ev.type === "error") {
+            ui.status.textContent = "Error: " + ev.message;
             ui.download.disabled = false;
             es.close();
-        };
-    });
+        } else if (ev.type === "done") {
+            ui.bar.style.width = "100%";
+            const failed = (ev.failed_videos && ev.failed_videos.length) || 0;
+            ui.status.textContent = failed ? `Done — ${failed} failed (retry below)` : "Done!";
+            ui.status.classList.add("done");
+            if (ev.output_path) {
+                ui.open.dataset.path = ev.output_path;
+                ui.open.classList.remove("hidden");
+            }
+            ui.download.disabled = false;
+            es.close();
+        }
+    };
+    es.onerror = () => {
+        ui.download.disabled = false;
+        es.close();
+    };
+}
+
+// Create/update a per-video result row (playlist). `ev` carries url/id/save_path/error.
+function setVideoRow(ui, index, title, status, ev) {
+    let row = ui.rows[index];
+    if (!row) {
+        row = document.createElement("li");
+        row.innerHTML =
+            '<span class="r-status"></span>' +
+            '<span class="r-title"></span>' +
+            '<span class="r-error"></span>' +
+            '<button class="btn ghost r-retry hidden">Retry</button>';
+        ui.results.appendChild(row);
+        ui.rows[index] = row;
+    }
+    row.className = "result-row " + status;
+    // row.querySelector(".r-title").textContent = `${index}. ${title}`;
+    row.querySelector(".r-title").textContent = `${title}`;
+    const statusEl = row.querySelector(".r-status");
+    const errorEl = row.querySelector(".r-error");
+    const retryBtn = row.querySelector(".r-retry");
+
+    if (status === "success") {
+        statusEl.textContent = "✓";
+        errorEl.textContent = "";
+        retryBtn.classList.add("hidden");
+    } else if (status === "failed") {
+        statusEl.textContent = "✗";
+        errorEl.textContent = (ev && ev.error) || "download failed";
+        retryBtn.classList.remove("hidden");
+        retryBtn.dataset.url = (ev && ev.url) || "";
+        retryBtn.dataset.id = (ev && ev.id) || "";
+        retryBtn.dataset.title = title;
+        retryBtn.dataset.savePath = (ev && ev.save_path) || "";
+        retryBtn.dataset.index = index;
+    } else {
+        // downloading / retrying
+        statusEl.textContent = "⏳";
+        errorEl.textContent = status === "retrying" ? "retrying…" : "";
+        retryBtn.classList.add("hidden");
+    }
+}
+
+// Retry a single failed playlist video (uses the persistent playlist UI state).
+function retryVideo(btn) {
+    const index = parseInt(btn.dataset.index, 10);
+    const retryData = {
+        url: btn.dataset.url,
+        id: btn.dataset.id,
+        title: btn.dataset.title,
+        save_path: btn.dataset.savePath,
+    };
+    setVideoRow(plUi, index, retryData.title, "retrying");
+    const fail = (message) =>
+        setVideoRow(plUi, index, retryData.title, "failed", { ...retryData, error: message });
+
+    api("/api/retry-video", { ...retryData, subtitle_language: $("pl-subs").value }).then(
+        ({ job_id, error }) => {
+            if (error || !job_id) return fail(error || "retry failed");
+            const es = new EventSource("/api/progress/" + job_id);
+            es.onmessage = (e) => {
+                const ev = JSON.parse(e.data);
+                if (ev.type === "progress") {
+                    const row = plUi.rows[index];
+                    if (row) row.querySelector(".r-error").textContent = `retrying… ${ev.percent || 0}%`;
+                } else if (ev.type === "done") {
+                    setVideoRow(plUi, index, retryData.title, ev.success ? "success" : "failed",
+                        { ...retryData, error: ev.error });
+                    es.close();
+                } else if (ev.type === "error") {
+                    fail(ev.message);
+                    es.close();
+                }
+            };
+            es.onerror = () => es.close();
+        }
+    );
 }
 
 function wireBrowse(buttonId, inputId) {
@@ -248,6 +327,17 @@ $("pl-fetch").addEventListener("click", () => {
         });
 });
 
+// Persistent playlist UI state (shared by download + per-video retry).
+const plUi = {
+    progress: $("pl-progress"),
+    bar: $("pl-bar"),
+    status: $("pl-status"),
+    open: $("pl-open"),
+    results: $("pl-results"),
+    download: $("pl-download"),
+    rows: {},
+};
+
 $("pl-download").addEventListener("click", () => {
     runJob(
         "/api/download-playlist",
@@ -257,15 +347,14 @@ $("pl-download").addEventListener("click", () => {
             numerate: $("pl-numerate").checked,
             save_path: $("pl-folder").value.trim(),
         },
-        {
-            progress: $("pl-progress"),
-            bar: $("pl-bar"),
-            status: $("pl-status"),
-            open: $("pl-open"),
-            log: $("pl-log"),
-            download: $("pl-download"),
-        }
+        plUi
     );
+});
+
+// Retry buttons are created dynamically -> delegate the click.
+$("pl-results").addEventListener("click", (e) => {
+    const btn = e.target.closest(".r-retry");
+    if (btn) retryVideo(btn);
 });
 
 wireBrowse("pl-browse", "pl-folder");

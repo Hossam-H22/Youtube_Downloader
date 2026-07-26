@@ -138,6 +138,22 @@ input[type="text"]:focus, select:focus { border-color: var(--accent-2); }
 .log li { padding: 4px 0; border-bottom: 1px solid var(--border); color: var(--muted); }
 .log li.fail { color: var(--accent-2); }
 
+/* Per-video download results (playlist) */
+.results { list-style: none; padding: 0; margin: 10px 0; max-height: 320px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: 10px; }
+.result-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); font-size: 14px; }
+.result-row:last-child { border-bottom: none; }
+.r-status { width: 18px; text-align: center; flex-shrink: 0; }
+.r-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-error { color: var(--accent-2); font-size: 12px; max-width: 40%; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+.r-retry { padding: 5px 12px; font-size: 12px; flex-shrink: 0; }
+.result-row.success .r-status { color: var(--ok); }
+.result-row.failed .r-status { color: var(--accent-2); }
+.result-row.downloading .r-status, .result-row.retrying .r-status { color: var(--muted); }
+.result-row.downloading, .result-row.retrying { background: rgba(255,255,255,.03); }
+
 .error { margin-top: 14px; padding: 11px 14px; border-radius: 10px; background: rgba(255,61,61,.12); border: 1px solid var(--accent); color: var(--accent-2); font-size: 14px; }
 
 .hidden { display: none !important; }
