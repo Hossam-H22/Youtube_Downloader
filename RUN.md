@@ -109,6 +109,19 @@ End users don't need any of the above — they can download a one-file build fro
 builds are produced by **PyInstaller** and bundle Python, all packages, and a static
 **ffmpeg** (via the `imageio-ffmpeg` dependency), so nothing needs to be installed.
 
+### Running the downloaded macOS build
+
+The macOS binary isn't code-signed, so Gatekeeper blocks it on first launch. After
+downloading `Youtube-Downloader`, from its folder run:
+
+```bash
+chmod +x Youtube-Downloader          # make it executable
+xattr -d com.apple.quarantine Youtube-Downloader   # clear the "unidentified developer" block
+./Youtube-Downloader                 # launch it
+```
+
+Alternatively, right-click the file in Finder → **Open** → **Open** to allow it once.
+
 To build one locally for your current OS:
 
 ```bash
