@@ -125,3 +125,17 @@ class PlaylistDownloadResult:
 
     output_path: str
     failed_videos: list[str] = field(default_factory=list)
+
+
+@dataclass
+class UpdateInfo:
+    """A newer app version advertised on the project's GitHub repository.
+
+    Returned by :func:`youtube_downloader.update_checker.check_for_update` when the
+    published ``metadata.json`` version is greater than the one we are running.
+    ``download_url`` points at the repository's latest release page.
+    """
+
+    current_version: str
+    latest_version: str
+    download_url: str = ""

@@ -15,6 +15,7 @@ from ..logging_config import LOG_FILE, clear_logs
 from ..metadata import get_metadata
 from ..models import PlaylistDownloadOptions, VideoDownloadOptions
 from ..paths import resource_path
+from ..update_checker import check_for_update
 from ..workflows import DownloadWorkflows
 from . import jobs
 
@@ -74,6 +75,19 @@ def create_app(
         meta = dict(get_metadata())
         meta['default_save_path'] = DEFAULT_SAVE_PATH
         return jsonify(meta)
+
+    @app.get('/api/check-update')
+    def api_check_update():
+        """Report whether a newer version is published on GitHub (for the dialog)."""
+        update = check_for_update()
+        if update is None:
+            return jsonify({'update_available': False})
+        return jsonify({
+            'update_available': True,
+            'current_version': update.current_version,
+            'latest_version': update.latest_version,
+            'download_url': update.download_url,
+        })
 
     @app.get('/api/logs')
     def api_logs():

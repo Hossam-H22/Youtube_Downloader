@@ -17,6 +17,7 @@
     ],
     "settings": {
         "use_js_runtime": true,
-        "log_level": "INFO"
+        "log_level": "INFO",
+        "check_for_updates": true
     }
 }

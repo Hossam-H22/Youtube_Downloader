@@ -117,6 +117,20 @@
         </section>
     </main>
 
+    <div id="update-modal" class="modal-overlay hidden">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="update-title">
+            <h2 id="update-title" class="modal-title">Update available 🎉</h2>
+            <p class="modal-body">
+                A new version <strong id="update-latest"></strong> is available.
+                You are currently running <strong id="update-current"></strong>.
+            </p>
+            <div class="modal-actions">
+                <button id="update-later" class="btn ghost">Later</button>
+                <a id="update-download" class="btn primary" href="#" target="_blank" rel="noopener">Download latest</a>
+            </div>
+        </div>
+    </div>
+
     <section id="logs-panel" class="logs-panel hidden">
         <div class="logs-header">
             <span class="logs-title">System logs</span>

@@ -118,6 +118,23 @@ fetch("/api/metadata")
     });
 
 // ------------------------------------------------------------------ //
+// Update check (shows a dialog when GitHub has a newer version)
+// ------------------------------------------------------------------ //
+fetch("/api/check-update")
+    .then((r) => r.json())
+    .then((info) => {
+        if (!info || !info.update_available) return;
+        $("update-latest").textContent = "v" + info.latest_version;
+        $("update-current").textContent = "v" + info.current_version;
+        if (info.download_url) $("update-download").href = info.download_url;
+        $("update-modal").classList.remove("hidden");
+    })
+    .catch(() => {});
+
+$("update-later").addEventListener("click", () => $("update-modal").classList.add("hidden"));
+$("update-download").addEventListener("click", () => $("update-modal").classList.add("hidden"));
+
+// ------------------------------------------------------------------ //
 // Shared job runner (SSE)
 // ------------------------------------------------------------------ //
 function runJob(endpoint, payload, ui) {

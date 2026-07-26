@@ -11,6 +11,7 @@ from .filesystem import clear_console, open_folder
 from .interfaces import InfoProvider, SubtitleService
 from .metadata import get_metadata
 from .models import Chapter, PlaylistDownloadOptions, PlaylistInfo, VideoDownloadOptions
+from .update_checker import check_for_update
 from .utils import clean_filename, format_video_length
 from .workflows import DownloadWorkflows
 
@@ -156,11 +157,23 @@ class ConsoleApp:
     # ------------------------------------------------------------------ #
     # Menu loop
     # ------------------------------------------------------------------ #
+    def _notify_if_update_available(self) -> None:
+        """Print a one-time notice at startup if a newer version is on GitHub."""
+        update = check_for_update()
+        if update:
+            print(
+                f"\n⚠️  A new version is available: v{update.latest_version} "
+                f"(you have v{update.current_version})."
+            )
+            if update.download_url:
+                print(f"    Download the latest version from: {update.download_url}")
+
     def run(self) -> None:
+        self._notify_if_update_available()
         while True:
             meta = get_metadata()
             developer = meta.get('author', {}).get('name', '')
-            print(f"\nWelcome to {meta.get('name', 'Youtube Downloader')} V{meta.get('version', '0.0.0')} 😊 developed by {developer} \n")
+            print(f"\nWelcome to {meta.get('name', 'Youtube Downloader')} v{meta.get('version', '0.0.0')} 😊 developed by {developer} \n")
             download_type = int(input("Please choose number: \n1 - Video \n2 - Playlist \n3 - Quit 👋\nYou choice is: "))
             logger.info("Console menu choice: %s", download_type)
             if download_type == 1:
