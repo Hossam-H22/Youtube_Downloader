@@ -3,6 +3,10 @@
 
 Video Downloader is a powerful and easy-to-use application designed to help you download entire playlists or specific videos from YouTube with ease with the ability to choose subtitle language and split the video into chapters. Whether you want to save your favorite videos for offline viewing, create a personal video library, or download educational content, Video Downloader has you covered. [Try it now](https://github.com/Hossam-H22/Youtube_Downloader/releases)
 
+## Running from source
+
+See **[RUN.md](RUN.md)** for step-by-step instructions on installing the prerequisites, setting up a virtual environment, and running `main.py`.
+
 
 
 
