@@ -30,6 +30,7 @@ youtube_downloader/
   chapters.py     # FfmpegChapterSplitter(ChapterSplitter) — ffmpeg + pysrt
   filesystem.py   # side effects: open_folder, pick_folder, create_text_file, clear_console, ensure_dir
   metadata.py     # get_metadata()/get_version() — reads metadata.json (single source of truth)
+  ytdlp_support.py# js_runtime_opts() — opt-in yt-dlp nsig-solver options (metadata.json settings)
   workflows.py    # DownloadWorkflows — shared download/subtitle/chapter orchestration (no UI)
   cli.py          # ConsoleApp — console menu + I/O, delegates to workflows
   gui/            # Flask web front-end (server.py, jobs.py, web/{index.html,style.css,app.js})
@@ -65,6 +66,12 @@ knows the concrete classes and does the wiring. The GUI reports progress via a
   description, author, repository, ...). The banner reads it at runtime via
   `metadata.py`'s `get_metadata()` — never hardcode the name, version, or developer.
   Bump the version with the `/bump-version` skill.
+- **Opt-in JS runtime.** `metadata.json` → `settings.use_js_runtime` (default
+  `false`). When `true` and a runtime (deno/node/bun) is on `PATH`, `ytdlp_support.js_runtime_opts()`
+  enables it plus the remote EJS solver so yt-dlp solves YouTube's nsig challenge
+  (all formats, no warning). Off by default because it fetches a solver script from
+  the yt-dlp GitHub. Downloads work either way (the downloader prefers H.264 formats
+  that don't need nsig).
 - **External dependencies:** `yt-dlp`, `youtube-transcript-api`, `pysrt`, `flask`
   (see `requirements.txt`), plus **ffmpeg** as an external runtime binary used for
   merging streams and chapter splitting.

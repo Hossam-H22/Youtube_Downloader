@@ -3,6 +3,7 @@
 import yt_dlp
 
 from .interfaces import VideoDownloader
+from .ytdlp_support import js_runtime_opts
 
 
 class YtDlpDownloader(VideoDownloader):
@@ -40,6 +41,9 @@ class YtDlpDownloader(VideoDownloader):
             # Source formats from several player clients so a throttled / HTTP-403
             # client (e.g. android_vr) can fall back to a working one.
             'extractor_args': {'youtube': {'player_client': ['default', 'tv', 'web_safari']}},
+            # Optionally enable a JS runtime + EJS solver (opt-in via metadata.json)
+            # to solve the nsig challenge and unlock all formats.
+            **js_runtime_opts(),
         }
         if progress_hook is not None:
             ydl_opts['progress_hooks'] = [progress_hook]

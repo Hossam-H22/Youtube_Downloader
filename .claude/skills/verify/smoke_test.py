@@ -154,6 +154,31 @@ def test_workflow_playlist(playlist):
         assert result.failed_videos == ["#2 - t2"]
 
 
+def test_js_runtime_opts():
+    import youtube_downloader.ytdlp_support as ys
+
+    orig_meta = ys.get_metadata
+    orig_which = ys.shutil.which
+    try:
+        # Setting off -> no change to yt-dlp options
+        ys.get_metadata = lambda: {'settings': {'use_js_runtime': False}}
+        assert ys.js_runtime_opts() == {}
+
+        # Setting on + a runtime on PATH -> enable runtime + remote solver
+        ys.get_metadata = lambda: {'settings': {'use_js_runtime': True}}
+        ys.shutil.which = lambda name: '/usr/bin/deno' if name == 'deno' else None
+        opts = ys.js_runtime_opts()
+        assert opts.get('js_runtimes') == {'deno': {}}
+        assert opts.get('remote_components') == ['ejs:github']
+
+        # Setting on but no runtime installed -> no change (still works via H.264)
+        ys.shutil.which = lambda name: None
+        assert ys.js_runtime_opts() == {}
+    finally:
+        ys.get_metadata = orig_meta
+        ys.shutil.which = orig_which
+
+
 def test_flask_offline(video, playlist):
     try:
         from youtube_downloader.gui.server import create_app
@@ -184,5 +209,6 @@ if __name__ == '__main__':
     test_video_display(video, playlist)
     test_workflow_video(video)
     test_workflow_playlist(playlist)
+    test_js_runtime_opts()
     test_flask_offline(video, playlist)
     print("ALL ASSERTIONS PASSED")

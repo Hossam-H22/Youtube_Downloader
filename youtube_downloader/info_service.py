@@ -5,6 +5,7 @@ import yt_dlp
 from .interfaces import InfoProvider
 from .models import Chapter, PlaylistInfo, VideoInfo
 from .utils import clean_filename
+from .ytdlp_support import js_runtime_opts
 
 
 class YtDlpInfoProvider(InfoProvider):
@@ -13,6 +14,7 @@ class YtDlpInfoProvider(InfoProvider):
     def get_video_info(self, url: str) -> VideoInfo:
         ydl_opts = {
             'quiet': True,  # Suppress output
+            **js_runtime_opts(),  # opt-in nsig solving (see metadata.json settings)
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)

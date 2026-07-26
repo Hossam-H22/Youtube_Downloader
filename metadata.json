@@ -14,5 +14,8 @@
         "youtube-transcript-api",
         "pysrt",
         "ffmpeg (external binary)"
-    ]
+    ],
+    "settings": {
+        "use_js_runtime": true
+    }
 }

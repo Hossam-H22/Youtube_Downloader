@@ -96,4 +96,12 @@ Please choose number:
 - **`ffmpeg not found`** — install ffmpeg (see Prerequisites) and make sure it's on your `PATH`.
 - **`Could not open folder`** — harmless; the download still completed, only the auto-open step failed.
 - **Subtitle / video-info errors** — usually a private, region-locked, or age-restricted video, or a temporary YouTube rate limit; retry later.
+- **`No supported JavaScript runtime` warning** — harmless. Downloads still work
+  because the app prefers H.264 formats that don't need YouTube's signature
+  challenge. To silence it and unlock all formats (e.g. AV1): install a JS runtime
+  (`brew install deno`, or have Node.js installed) **and** set
+  `"settings": { "use_js_runtime": true }` in `metadata.json`. When enabled, the
+  app lets yt-dlp fetch its EJS solver script from the yt-dlp GitHub (that's why
+  it's off by default). Leave it `false` to keep the default, no-network-fetch
+  behavior.
 
