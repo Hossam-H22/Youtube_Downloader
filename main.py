@@ -1,26 +1,51 @@
-"""Entry point: construct the concrete services and run the console app.
+"""Entry point: construct the shared services and launch a front-end.
 
-This is the only place concrete implementations are chosen; ``ConsoleApp``
-itself depends solely on the abstract interfaces (dependency inversion), so a
-service can be swapped here without touching the rest of the package.
+By default the web GUI is launched (Flask server + browser). Pass
+``--console-view`` (or the bare token ``console-view``) to run the interactive
+console instead. Concrete services are chosen only here; both front-ends depend
+solely on the abstract interfaces (dependency inversion).
 """
+
+import sys
 
 from youtube_downloader.chapters import FfmpegChapterSplitter
 from youtube_downloader.cli import ConsoleApp
 from youtube_downloader.downloader import YtDlpDownloader
 from youtube_downloader.info_service import YtDlpInfoProvider
 from youtube_downloader.subtitles import TranscriptApiSubtitleService
+from youtube_downloader.workflows import DownloadWorkflows
+
+CONSOLE_FLAGS = {"--console-view", "console-view"}
 
 
-def build_app() -> ConsoleApp:
-    """Wire the concrete services into the console application."""
-    return ConsoleApp(
-        info_provider=YtDlpInfoProvider(),
+def build_services():
+    """Construct the concrete services and the shared workflow layer."""
+    info_provider = YtDlpInfoProvider()
+    subtitle_service = TranscriptApiSubtitleService()
+    workflows = DownloadWorkflows(
         downloader=YtDlpDownloader(),
-        subtitle_service=TranscriptApiSubtitleService(),
+        subtitle_service=subtitle_service,
         chapter_splitter=FfmpegChapterSplitter(),
     )
+    return info_provider, subtitle_service, workflows
+
+
+def build_console_app() -> ConsoleApp:
+    """Wire the shared services into the interactive console app."""
+    info_provider, subtitle_service, workflows = build_services()
+    return ConsoleApp(info_provider, subtitle_service, workflows)
+
+
+def main(argv: "list[str] | None" = None) -> None:
+    args = sys.argv[1:] if argv is None else argv
+    if CONSOLE_FLAGS & set(args):
+        build_console_app().run()
+    else:
+        # Imported lazily so the console mode doesn't require Flask installed.
+        from youtube_downloader.gui.server import run_gui
+
+        run_gui(*build_services())
 
 
 if __name__ == '__main__':
-    build_app().run()
+    main()
