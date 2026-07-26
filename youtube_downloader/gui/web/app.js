@@ -130,6 +130,34 @@ function wireBrowse(buttonId, inputId) {
     });
 }
 
+function renderPlaylistVideos(videos) {
+    const list = $("pl-videos");
+    list.innerHTML = "";
+    videos.forEach((v) => {
+        const li = document.createElement("li");
+        if (v.thumbnail) {
+            const img = document.createElement("img");
+            img.src = v.thumbnail;
+            img.className = "v-thumb";
+            img.alt = "";
+            li.appendChild(img);
+        }
+        const body = document.createElement("span");
+        body.className = "v-body";
+        const title = document.createElement("span");
+        title.className = "v-title";
+        // title.textContent = `${v.index}. ${v.title}`;
+        title.textContent = v.title;
+        const meta = document.createElement("span");
+        meta.className = "v-meta";
+        meta.textContent = v.length + (v.chapters ? ` · ${v.chapters} chapters` : "");
+        body.appendChild(title);
+        body.appendChild(meta);
+        li.appendChild(body);
+        list.appendChild(li);
+    });
+}
+
 function wireOpen(buttonId) {
     $(buttonId).addEventListener("click", (e) => {
         const path = e.target.dataset.path;
@@ -210,6 +238,7 @@ $("pl-fetch").addEventListener("click", () => {
             $("pl-title").textContent = info.title;
             $("pl-count").textContent = `${info.number_videos} videos`;
             $("pl-duration").textContent = info.length;
+            renderPlaylistVideos(info.videos || []);
             fillSubtitleSelect($("pl-subs"), info.transcript_list);
             $("pl-info").classList.remove("hidden");
         })

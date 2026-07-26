@@ -49,13 +49,19 @@ def create_app(
     # ------------------------------------------------------------------ #
     # Static UI
     # ------------------------------------------------------------------ #
+    def _no_cache(response):
+        # Local dev app: always serve the current asset so an edit is never
+        # masked by a cached copy in the browser.
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
+
     @app.get('/')
     def index():
-        return send_from_directory(WEB_DIR, 'index.html')
+        return _no_cache(send_from_directory(WEB_DIR, 'index.html'))
 
     @app.get('/static/<path:filename>')
     def static_files(filename: str):
-        return send_from_directory(WEB_DIR, filename)
+        return _no_cache(send_from_directory(WEB_DIR, filename))
 
     @app.get('/api/metadata')
     def api_metadata():
@@ -97,7 +103,16 @@ def create_app(
                 'number_videos': info.number_videos,
                 'length': info.length,
                 'transcript_list': info.transcript_list,
-                'videos': [{'title': v.title, 'length': v.length} for v in info.videos_info],
+                'videos': [
+                    {
+                        'index': i + 1,
+                        'title': v.title,
+                        'length': v.length,
+                        'thumbnail': v.thumbnail,
+                        'chapters': len(v.chapters),
+                    }
+                    for i, v in enumerate(info.videos_info)
+                ],
             })
         except Exception as e:  # noqa: BLE001
             return jsonify({'error': str(e)}), 500

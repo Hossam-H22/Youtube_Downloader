@@ -168,6 +168,15 @@ def test_flask_offline(video, playlist):
     data = meta.get_json()
     assert "name" in data and "version" in data
 
+    # /api/playlist-info returns per-video details for the whole playlist
+    pl = client.post("/api/playlist-info", json={"url": "x"})
+    assert pl.status_code == 200
+    body = pl.get_json()
+    assert body["number_videos"] == 2
+    assert len(body["videos"]) == 2
+    assert body["videos"][0]["index"] == 1
+    assert "title" in body["videos"][0] and "length" in body["videos"][0]
+
 
 if __name__ == '__main__':
     test_helpers()
