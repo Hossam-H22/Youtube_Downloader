@@ -17,31 +17,34 @@ PY=.venv/bin/python; [ -x "$PY" ] || PY=python3
 ```
 
 Dependencies (from `requirements.txt`): `yt-dlp`, `youtube-transcript-api`,
-`pysrt`, plus external `ffmpeg`. If imports fail with `ModuleNotFoundError`,
+`pysrt`, `flask`, plus external `ffmpeg`. If imports fail with `ModuleNotFoundError`,
 create a venv and install: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`.
 
 ## Steps (run from the repo root)
 
 1. **Byte-compile** — catches syntax errors in every module:
    ```bash
-   $PY -m py_compile main.py youtube_downloader/*.py && echo "compile OK"
+   $PY -m py_compile main.py youtube_downloader/*.py youtube_downloader/gui/*.py && echo "compile OK"
    ```
 
 2. **Import / wiring / circular-import check:**
    ```bash
-   $PY -c "import youtube_downloader, main; main.build_app(); print('wiring OK')"
+   $PY -c "import youtube_downloader, main; main.build_console_app(); print('wiring OK')"
    ```
-   `build_app()` constructs every concrete service and injects it into
-   `ConsoleApp`, so this fails loudly if an ABC method is unimplemented.
+   `build_console_app()` constructs every concrete service + the shared
+   `DownloadWorkflows` and injects them into `ConsoleApp`, so this fails loudly if
+   an ABC method is unimplemented.
 
-3. **Menu smoke test** — banner/menu renders and Quit exits cleanly (code 0):
+3. **Menu smoke test** — banner/menu renders and Quit exits cleanly (code 0).
+   Pass `--console-view`, because bare `main.py` now launches the web GUI:
    ```bash
-   printf '3\n' | $PY main.py; echo "[exit $?]"
+   printf '3\n' | $PY main.py --console-view; echo "[exit $?]"
    ```
    Expect the "Welcome to Youtube Downloader V1.1.2" banner and the 1/2/3 menu.
 
-4. **Fake-service flow test** — exercises `video_processes`/`playlist_processes`
-   display logic and the pure helpers with **no network**:
+4. **Fake-service flow test** — exercises the console display logic, the shared
+   `DownloadWorkflows` (video + playlist orchestration), the pure helpers, and the
+   Flask app (offline, via its test client) with **no network**:
    ```bash
    $PY .claude/skills/verify/smoke_test.py
    ```
@@ -51,5 +54,5 @@ create a venv and install: `python3 -m venv .venv && .venv/bin/pip install -r re
 ## Pass criteria
 
 All four steps succeed. If step 2 or 4 fails, the change broke the interface
-contract or the display logic — fix before proceeding. Steps are fully offline;
-they never download anything.
+contract, the workflow logic, or the display logic — fix before proceeding. Steps
+are fully offline; they never download anything.

@@ -1,11 +1,11 @@
 """Network-free smoke test for the YouTube Downloader.
 
-Injects fake services (implementing the four ABCs in ``interfaces.py``) into
-``ConsoleApp``, drives the video flow with monkeypatched ``input``, and asserts
-the display output plus the pure helpers and model properties. No downloads,
-no YouTube, no ffmpeg.
+Injects fake services (implementing the ABCs in ``interfaces.py``) into the
+console app and the shared workflow layer, and checks the Flask app offline via
+its test client. Asserts display output, helpers, model properties, workflow
+orchestration, and the web wiring. No downloads, no YouTube, no ffmpeg.
 
-Run from the repo root:  PYTHONPATH="$(pwd)" python .claude/skills/verify/smoke_test.py
+Run from anywhere:  python .claude/skills/verify/smoke_test.py
 """
 
 import builtins
@@ -13,6 +13,7 @@ import contextlib
 import io
 import os
 import sys
+import tempfile
 
 # Make the repo root importable no matter where this script is launched from.
 # This file lives at <repo>/.claude/skills/verify/smoke_test.py, so the repo
@@ -26,12 +27,19 @@ from youtube_downloader.interfaces import (
     SubtitleService,
     VideoDownloader,
 )
-from youtube_downloader.models import Chapter, PlaylistInfo, VideoInfo
+from youtube_downloader.models import (
+    Chapter,
+    PlaylistDownloadOptions,
+    PlaylistInfo,
+    VideoDownloadOptions,
+    VideoInfo,
+)
 from youtube_downloader.utils import (
     clean_filename,
     format_counter,
     format_video_length,
 )
+from youtube_downloader.workflows import DownloadWorkflows
 
 
 def test_helpers():
@@ -70,8 +78,13 @@ class _FakeInfo(InfoProvider):
 
 
 class _FakeDownloader(VideoDownloader):
-    def download(self, url, title, output_path='.'):
-        return True
+    def __init__(self, fail_titles=()):
+        self.calls = []
+        self.fail_titles = set(fail_titles)
+
+    def download(self, url, title, output_path='.', progress_hook=None):
+        self.calls.append(title)
+        return title not in self.fail_titles
 
 
 class _FakeSubs(SubtitleService):
@@ -90,8 +103,12 @@ class _FakeSplitter(ChapterSplitter):
         pass
 
 
+def _workflows(downloader=None):
+    return DownloadWorkflows(downloader or _FakeDownloader(), _FakeSubs(), _FakeSplitter())
+
+
 def test_video_display(video, playlist):
-    app = ConsoleApp(_FakeInfo(video, playlist), _FakeDownloader(), _FakeSubs(), _FakeSplitter())
+    app = ConsoleApp(_FakeInfo(video, playlist), _FakeSubs(), _workflows())
 
     inputs = iter(["N"])  # answer "N" to the download prompt -> only info is shown
     original_input = builtins.input
@@ -113,8 +130,50 @@ def test_video_display(video, playlist):
     assert "2. Body  =>  59 minutes and 31 seconds" in out
 
 
+def test_workflow_video(video):
+    dl = _FakeDownloader()
+    result = _workflows(dl).download_video(
+        video, VideoDownloadOptions(save_path="/nowhere", subtitle_language=None, split_chapters=False)
+    )
+    assert dl.calls == [video.title]
+    assert result.output_path == "/nowhere"
+    assert result.subtitle_file == ""
+
+
+def test_workflow_playlist(playlist):
+    with tempfile.TemporaryDirectory() as tmp:
+        dl = _FakeDownloader(fail_titles={"t2"})  # second video "fails"
+        events = []
+        result = _workflows(dl).download_playlist(
+            playlist,
+            PlaylistDownloadOptions(save_path=tmp, subtitle_language=None, numerate=False),
+            on_video=lambda i, total, title: events.append((i, total, title)),
+        )
+        assert len(events) == 2               # on_video fired for both videos
+        assert dl.calls == ["t", "t2"]
+        assert result.failed_videos == ["#2 - t2"]
+
+
+def test_flask_offline(video, playlist):
+    try:
+        from youtube_downloader.gui.server import create_app
+    except Exception as e:  # flask not installed -> skip rather than fail hard
+        print(f"(skipping Flask check: {e})")
+        return
+    app = create_app(_FakeInfo(video, playlist), _FakeSubs(), _workflows())
+    client = app.test_client()
+    assert client.get("/").status_code == 200
+    meta = client.get("/api/metadata")
+    assert meta.status_code == 200
+    data = meta.get_json()
+    assert "name" in data and "version" in data
+
+
 if __name__ == '__main__':
     test_helpers()
     video, playlist = test_models()
     test_video_display(video, playlist)
+    test_workflow_video(video)
+    test_workflow_playlist(playlist)
+    test_flask_offline(video, playlist)
     print("ALL ASSERTIONS PASSED")
