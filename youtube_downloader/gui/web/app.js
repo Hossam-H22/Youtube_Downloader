@@ -16,6 +16,65 @@ function fmtSpeed(bytesPerSec) {
     return mb >= 1 ? `${mb.toFixed(1)} MB/s` : `${(bytesPerSec / 1024).toFixed(0)} KB/s`;
 }
 
+// Format a number of seconds as a timestamp (h:mm:ss or m:ss).
+function fmtTimestamp(seconds) {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+// Format a duration in seconds as human-readable parts, e.g. "2 min, 34 sec".
+function fmtDuration(seconds) {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const parts = [];
+    if (h > 0) parts.push(`${h} hr`);
+    if (m > 0) parts.push(`${m} min`);
+    if (s > 0 || !parts.length) parts.push(`${s} sec`);
+    return parts.join(", ");
+}
+
+// Render the chapter list (with timestamps) inside the video info card.
+// Also toggles the "Split into chapters" checkbox — only shown when chapters exist.
+function renderVideoChapters(chapters) {
+    const box = $("video-chapters-box");
+    const list = $("video-chapters-list");
+    const splitLabel = $("video-split-label");
+    list.innerHTML = "";
+    if (!chapters || !chapters.length) {
+        box.classList.add("hidden");
+        box.open = false;
+        splitLabel.classList.add("hidden");
+        $("video-split").checked = false;
+        return;
+    }
+    $("video-chapters-summary").textContent = `${chapters.length} chapters`;
+    chapters.forEach((ch) => {
+        const li = document.createElement("li");
+        const time = document.createElement("span");
+        time.className = "ch-time";
+        time.textContent = fmtTimestamp(ch.start_time);
+        const title = document.createElement("span");
+        title.className = "ch-title";
+        title.textContent = ch.title;
+        const dur = document.createElement("span");
+        dur.className = "ch-dur";
+        dur.textContent = fmtDuration(ch.end_time - ch.start_time);
+        li.appendChild(time);
+        li.appendChild(title);
+        li.appendChild(dur);
+        list.appendChild(li);
+    });
+    box.classList.remove("hidden");
+    box.open = true;
+    splitLabel.classList.remove("hidden");
+}
+
 function fillSubtitleSelect(select, langs) {
     select.innerHTML = "";
     const none = document.createElement("option");
@@ -265,6 +324,7 @@ $("video-fetch").addEventListener("click", () => {
             $("video-duration").textContent = info.length;
             $("video-chapters").textContent =
                 info.chapters && info.chapters.length ? `· ${info.chapters.length} chapters` : "";
+            renderVideoChapters(info.chapters);
             $("video-thumb").src = info.thumbnail || "";
             fillSubtitleSelect($("video-subs"), info.transcript_list);
             $("video-info").classList.remove("hidden");

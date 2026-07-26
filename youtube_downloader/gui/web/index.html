@@ -32,13 +32,18 @@
                     <h2 id="video-title"></h2>
                     <p class="muted"><span id="video-duration"></span> <span id="video-chapters"></span></p>
 
+                    <details id="video-chapters-box" class="chapters-box hidden" open>
+                        <summary><span id="video-chapters-summary"></span></summary>
+                        <ol id="video-chapters-list" class="chapters-list"></ol>
+                    </details>
+
                     <label class="field">
                         <span>Subtitles</span>
                         <select id="video-subs"></select>
                     </label>
 
-                    <label class="check">
-                        <input type="checkbox" id="video-split"> Split video into chapters (if any)
+                    <label class="check hidden" id="video-split-label">
+                        <input type="checkbox" id="video-split"> Split video into chapters
                     </label>
 
                     <label class="field">
