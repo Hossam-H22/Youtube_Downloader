@@ -14,6 +14,7 @@ from .interfaces import (
     SubtitleService,
     VideoDownloader,
 )
+from .metadata import get_metadata
 from .models import Chapter, PlaylistInfo
 from .utils import clean_filename, format_counter, format_video_length
 
@@ -194,7 +195,9 @@ class ConsoleApp:
     # ------------------------------------------------------------------ #
     def run(self) -> None:
         while True:
-            print("\nWelcome to Youtube Downloader V1.1.2 😊 developed by Eng.Hossam Hatem \n")
+            meta = get_metadata()
+            developer = meta.get('author', {}).get('name', '')
+            print(f"\nWelcome to {meta.get('name', 'Youtube Downloader')} V{meta.get('version', '0.0.0')} 😊 developed by {developer} \n")
             download_type = int(input("Please choose number: \n1 - Video \n2 - Playlist \n3 - Quit 👋\nYou choice is: "))
             if download_type == 1:
                 video_url = input("\nPlease enter the link of youtube video: ")

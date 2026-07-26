@@ -27,6 +27,7 @@ youtube_downloader/
   subtitles.py    # TranscriptApiSubtitleService(SubtitleService)
   chapters.py     # FfmpegChapterSplitter(ChapterSplitter) — ffmpeg + pysrt
   filesystem.py   # side effects: open_folder, create_text_file, clear_console, ensure_dir
+  metadata.py     # get_metadata()/get_version() — reads metadata.json (single source of truth)
   cli.py          # ConsoleApp — menu + all user I/O, orchestrates injected services
 ```
 
@@ -48,8 +49,12 @@ classes and does the wiring.
 - **Naming:** snake_case for functions and locals, PascalCase for classes. Add
   type hints on new functions/methods.
 - **Do not change user-facing behavior casually.** The menu text, prompts, and
-  printed output are the product UX (currently "V1.1.2"). Preserve wording and
-  output format unless the user explicitly asks to change it.
+  printed output are the product UX. Preserve wording and output format unless the
+  user explicitly asks to change it.
+- **Project metadata is single-sourced in `metadata.json`** (name, version,
+  description, author, repository, ...). The banner reads it at runtime via
+  `metadata.py`'s `get_metadata()` — never hardcode the name, version, or developer.
+  Bump the version with the `/bump-version` skill.
 - **External dependencies:** `yt-dlp`, `youtube-transcript-api`, `pysrt` (see
   `requirements.txt`), plus **ffmpeg** as an external runtime binary used for
   merging streams and chapter splitting.
