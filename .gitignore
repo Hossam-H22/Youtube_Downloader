@@ -5,6 +5,9 @@ __pycache__
 output/
 logs/
 
+# User settings written at runtime (see youtube_downloader/settings.py)
+settings.json
+
 # PyInstaller build output
 build/
 dist/
