@@ -7,7 +7,7 @@ import yt_dlp
 from .ffmpeg_support import ffmpeg_location
 from .interfaces import VideoDownloader
 from .models import DownloadOutcome
-from .ytdlp_support import js_runtime_opts
+from .ytdlp_support import base_ydl_opts, friendly_error, is_auth_error
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +45,9 @@ class YtDlpDownloader(VideoDownloader):
             'extractor_retries': 5,   # Re-extract (fresh URLs) on transient extractor errors
             'socket_timeout': 30,     # Give up on a stalled connection sooner, then retry
             'continuedl': True,       # Resume partially downloaded files instead of restarting
-            # Source formats from several player clients so a throttled / HTTP-403
-            # client (e.g. android_vr) can fall back to a working one.
-            'extractor_args': {'youtube': {'player_client': ['default', 'tv', 'web_safari']}},
-            # Optionally enable a JS runtime + EJS solver (opt-in via metadata.json)
-            # to solve the nsig challenge and unlock all formats.
-            **js_runtime_opts(),
+            # Multi-client format sourcing, the opt-in nsig solver, and any configured
+            # cookies — shared with the info provider so the two never drift apart.
+            **base_ydl_opts(),
         }
         if progress_hook is not None:
             ydl_opts['progress_hooks'] = [progress_hook]
@@ -65,8 +62,14 @@ class YtDlpDownloader(VideoDownloader):
                 return DownloadOutcome(success=True)
             except Exception as e:
                 last_error = e
+                # A sign-in / bot check is not transient: retrying the same anonymous
+                # request just repeats the block, so stop and report the fix instead.
+                if is_auth_error(e):
+                    logger.error("Authentication required for '%s': %s", title, e)
+                    break
                 logger.warning("Attempt %d/3 failed for '%s': %s", attempt, title, e)
                 print(f"\nAttempt {attempt}/3 failed for '{title}': {e}")
-        logger.error("Failed to download '%s' after 3 attempts: %s", title, last_error)
-        print(f"\nFailed to download '{title}': {last_error}\n")
-        return DownloadOutcome(success=False, error=str(last_error))
+        reason = friendly_error(last_error) or str(last_error)
+        logger.error("Failed to download '%s': %s", title, reason)
+        print(f"\nFailed to download '{title}': {reason}\n")
+        return DownloadOutcome(success=False, error=reason)

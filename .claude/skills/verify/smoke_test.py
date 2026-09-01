@@ -169,15 +169,15 @@ def test_workflow_playlist(playlist):
 def test_js_runtime_opts():
     import youtube_downloader.ytdlp_support as ys
 
-    orig_meta = ys.get_metadata
+    orig_settings = ys.get_settings
     orig_which = ys.shutil.which
     try:
         # Setting off -> no change to yt-dlp options
-        ys.get_metadata = lambda: {'settings': {'use_js_runtime': False}}
+        ys.get_settings = lambda: {'use_js_runtime': False}
         assert ys.js_runtime_opts() == {}
 
         # Setting on + a runtime on PATH -> enable runtime + remote solver
-        ys.get_metadata = lambda: {'settings': {'use_js_runtime': True}}
+        ys.get_settings = lambda: {'use_js_runtime': True}
         ys.shutil.which = lambda name: '/usr/bin/deno' if name == 'deno' else None
         opts = ys.js_runtime_opts()
         assert opts.get('js_runtimes') == {'deno': {}}
@@ -187,7 +187,7 @@ def test_js_runtime_opts():
         ys.shutil.which = lambda name: None
         assert ys.js_runtime_opts() == {}
     finally:
-        ys.get_metadata = orig_meta
+        ys.get_settings = orig_settings
         ys.shutil.which = orig_which
 
 
