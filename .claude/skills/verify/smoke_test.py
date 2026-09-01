@@ -135,11 +135,25 @@ def test_video_display(video, playlist):
 
 def test_workflow_video(video):
     dl = _FakeDownloader()
-    result = _workflows(dl).download_video(
-        video, VideoDownloadOptions(save_path="/nowhere", subtitle_language=None, split_chapters=False)
-    )
+    options = VideoDownloadOptions(save_path="/nowhere", subtitle_language=None, split_chapters=False)
+    result = _workflows(dl).download_video(video, options)
     assert dl.calls == [video.title]
     assert result.output_path == "/nowhere"
+    assert result.subtitle_file == ""
+    assert result.success and result.error == ""
+
+    # A failed download is reported, not silently treated as success — and the
+    # subtitle step is skipped, since there is no file to put subtitles beside.
+    subs = _FakeSubs()
+    failing = _FakeDownloader(fail_titles={video.title})
+    result = DownloadWorkflows(
+        downloader=failing, subtitle_service=subs, chapter_splitter=_FakeSplitter(),
+    ).download_video(
+        video,
+        VideoDownloadOptions(save_path="/nowhere", subtitle_language="en", split_chapters=False),
+    )
+    assert result.success is False
+    assert "failed" in result.error
     assert result.subtitle_file == ""
 
 
@@ -169,15 +183,15 @@ def test_workflow_playlist(playlist):
 def test_js_runtime_opts():
     import youtube_downloader.ytdlp_support as ys
 
-    orig_meta = ys.get_metadata
+    orig_settings = ys.get_settings
     orig_which = ys.shutil.which
     try:
         # Setting off -> no change to yt-dlp options
-        ys.get_metadata = lambda: {'settings': {'use_js_runtime': False}}
+        ys.get_settings = lambda: {'use_js_runtime': False}
         assert ys.js_runtime_opts() == {}
 
         # Setting on + a runtime on PATH -> enable runtime + remote solver
-        ys.get_metadata = lambda: {'settings': {'use_js_runtime': True}}
+        ys.get_settings = lambda: {'use_js_runtime': True}
         ys.shutil.which = lambda name: '/usr/bin/deno' if name == 'deno' else None
         opts = ys.js_runtime_opts()
         assert opts.get('js_runtimes') == {'deno': {}}
@@ -187,8 +201,102 @@ def test_js_runtime_opts():
         ys.shutil.which = lambda name: None
         assert ys.js_runtime_opts() == {}
     finally:
-        ys.get_metadata = orig_meta
+        ys.get_settings = orig_settings
         ys.shutil.which = orig_which
+
+
+def test_cookie_opts():
+    import youtube_downloader.ytdlp_support as ys
+
+    orig = ys.get_settings
+    try:
+        # Nothing configured -> no cookie options at all
+        ys.get_settings = lambda: {}
+        assert ys.cookie_opts() == {}
+
+        # A supported browser -> yt-dlp's (browser,) tuple
+        ys.get_settings = lambda: {'cookies_from_browser': 'chrome'}
+        assert ys.cookie_opts() == {'cookiesfrombrowser': ('chrome',)}
+
+        # Case/whitespace tolerant
+        ys.get_settings = lambda: {'cookies_from_browser': '  Firefox '}
+        assert ys.cookie_opts() == {'cookiesfrombrowser': ('firefox',)}
+
+        # An unknown browser is ignored rather than crashing the download
+        ys.get_settings = lambda: {'cookies_from_browser': 'netscape'}
+        assert ys.cookie_opts() == {}
+
+        # A cookies file is used only when it actually exists
+        ys.get_settings = lambda: {'cookies_file': '/definitely/not/here.txt'}
+        assert ys.cookie_opts() == {}
+        with tempfile.NamedTemporaryFile(suffix='.txt') as f:
+            ys.get_settings = lambda: {'cookies_file': f.name}
+            assert ys.cookie_opts() == {'cookiefile': f.name}
+
+            # Both sources can be active at once
+            ys.get_settings = lambda: {'cookies_from_browser': 'safari', 'cookies_file': f.name}
+            assert ys.cookie_opts() == {
+                'cookiesfrombrowser': ('safari',), 'cookiefile': f.name,
+            }
+
+        # base_ydl_opts always carries the shared player-client list
+        ys.get_settings = lambda: {}
+        assert ys.base_ydl_opts()['extractor_args'] == {
+            'youtube': {'player_client': ['default', 'tv', 'web_safari']}
+        }
+    finally:
+        ys.get_settings = orig
+
+
+def test_auth_error_classification():
+    from youtube_downloader.ytdlp_support import friendly_error, is_auth_error
+
+    blocked = Exception(
+        "ERROR: [youtube] saKNFPAybaY: Sign in to confirm you\u2019re not a bot. "
+        "Use --cookies-from-browser or --cookies for the authentication."
+    )
+    assert is_auth_error(blocked)
+    message = friendly_error(blocked)
+    assert message and "not a bot" in message and "Settings" in message
+
+    # Unrelated failures are left exactly as they were
+    transient = Exception("HTTP Error 500: Internal Server Error")
+    assert not is_auth_error(transient)
+    assert friendly_error(transient) is None
+
+
+def test_settings_layering():
+    import youtube_downloader.settings as st
+
+    with tempfile.TemporaryDirectory() as tmp:
+        orig_writable = st.writable_dir
+        orig_meta = st.get_metadata
+        try:
+            st.writable_dir = lambda: tmp
+            st.get_metadata = lambda: {'settings': {'log_level': 'INFO', 'use_js_runtime': True}}
+
+            # With no user file, the bundled defaults win
+            assert st.get_settings()['use_js_runtime'] is True
+            assert st.get_settings()['cookies_from_browser'] == ''
+
+            # A saved override shadows the bundled default and round-trips
+            merged = st.update_settings({'cookies_from_browser': 'chrome'})
+            assert merged['cookies_from_browser'] == 'chrome'
+            assert merged['log_level'] == 'INFO'      # untouched keys survive
+            assert st.get_settings()['cookies_from_browser'] == 'chrome'
+
+            # A second write merges rather than replacing
+            st.update_settings({'use_js_runtime': False})
+            assert st.get_settings()['cookies_from_browser'] == 'chrome'
+            assert st.get_settings()['use_js_runtime'] is False
+
+            # A corrupt settings file must not stop the app starting
+            with open(st.settings_path(), 'w', encoding='utf-8') as f:
+                f.write("{not json")
+            assert st.get_settings()['use_js_runtime'] is True   # falls back to defaults
+        finally:
+            st.writable_dir = orig_writable
+            st.get_metadata = orig_meta
 
 
 def test_flask_offline(video, playlist):
@@ -221,6 +329,17 @@ def test_flask_offline(video, playlist):
     assert retry.status_code == 200
     assert "job_id" in retry.get_json()
 
+    # /api/settings exposes the current values, the file backing them, and the
+    # browser choices the Settings panel offers.
+    got = client.get("/api/settings")
+    assert got.status_code == 200
+    body = got.get_json()
+    assert "settings" in body and "settings_path" in body
+    assert "chrome" in body["browsers"]
+
+    # A POST with no recognized key is rejected rather than writing an empty file
+    assert client.post("/api/settings", json={"nope": 1}).status_code == 400
+
 
 if __name__ == '__main__':
     test_helpers()
@@ -229,5 +348,8 @@ if __name__ == '__main__':
     test_workflow_video(video)
     test_workflow_playlist(playlist)
     test_js_runtime_opts()
+    test_cookie_opts()
+    test_auth_error_classification()
+    test_settings_layering()
     test_flask_offline(video, playlist)
     print("ALL ASSERTIONS PASSED")

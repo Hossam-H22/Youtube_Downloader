@@ -14,6 +14,7 @@ import ssl
 import urllib.request
 
 from .metadata import get_metadata
+from .settings import get_settings
 from .models import UpdateInfo
 
 logger = logging.getLogger(__name__)
@@ -96,12 +97,11 @@ def _fetch_remote_metadata(repository: str) -> "dict | None":
 def check_for_update() -> "UpdateInfo | None":
     """Return :class:`UpdateInfo` if GitHub has a newer version, else ``None``.
 
-    Honors the ``settings.check_for_updates`` flag in ``metadata.json`` (default
-    ``True``). Never raises — network/parse failures resolve to ``None``.
+    Honors the ``check_for_updates`` setting (default ``True``). Never raises —
+    network/parse failures resolve to ``None``.
     """
     meta = get_metadata()
-    settings = meta.get("settings", {}) or {}
-    if not settings.get("check_for_updates", True):
+    if not get_settings().get("check_for_updates", True):
         logger.debug("Update check disabled via settings")
         return None
 

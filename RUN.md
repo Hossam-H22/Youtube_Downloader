@@ -88,6 +88,47 @@ Please choose number:
    - **Save folder path**
 4. Each video downloads into a folder named after the playlist. Failed videos are listed at the end — re-run the same playlist to retry them (already-downloaded videos are skipped).
 
+## Settings
+
+App settings live in two layers:
+
+* **Defaults** ship in `metadata.json` → `"settings"` (read-only in a packaged build).
+* **Your changes** are saved to `settings.json` next to the app — the repo root in a
+  source checkout, beside the executable in a packaged build. This file wins over the
+  defaults, and it's the only one a packaged build can write.
+
+Edit them in the web GUI via the **Settings** button in the header, or by hand in
+`settings.json`. Keys:
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `cookies_from_browser` | `""` | Read YouTube cookies from a browser: `brave`, `chrome`, `chromium`, `edge`, `firefox`, `opera`, `safari`, `vivaldi`, `whale`. Empty = anonymous. |
+| `cookies_file` | `""` | Path to a Netscape-format `cookies.txt` export. Use this when reading the browser store is blocked. |
+| `use_js_runtime` | `true` | Let yt-dlp solve YouTube's nsig challenge with a JS runtime + the remote EJS solver. |
+| `log_level` | `INFO` | Logging verbosity. |
+| `check_for_updates` | `true` | Check GitHub for a newer version on startup. |
+
+### Signing in (cookies)
+
+YouTube sometimes refuses anonymous requests with **"Sign in to confirm you're not
+a bot"**. Sending cookies from a browser where you're signed in clears it:
+
+1. Sign in to YouTube in your browser.
+2. Open **Settings** in the app and pick that browser under *Cookies from browser*.
+3. Fetch the video again.
+
+Platform notes:
+
+* **macOS Safari** needs Full Disk Access for the app (or your terminal), otherwise
+  cookie extraction fails with `Operation not permitted`.
+* **Chrome/Chromium/Brave/Edge** prompt for Keychain access the first time.
+* If neither works, export a `cookies.txt` with a browser extension and set
+  `cookies_file` instead.
+
+Cookies are read from your settings on every request, so you set them once — nothing
+is attached per download. Treat `cookies.txt` as a credential: it grants access to
+your signed-in session.
+
 ## Logs
 
 Every step is logged. Logs always go to a rotating file at
@@ -99,8 +140,8 @@ is file-only (so it doesn't clutter the interactive menu) — watch it live with
 tail -f logs/youtube_downloader.log
 ```
 
-Set the level in `metadata.json` → `"settings": { "log_level": "DEBUG" }` for more
-detail (default `INFO`).
+Set the level in `settings.json` → `{ "log_level": "DEBUG" }` for more detail
+(default `INFO`); the bundled default lives in `metadata.json` → `"settings"`.
 
 ## Building standalone executables
 
@@ -142,13 +183,17 @@ when a `vX.Y.Z` tag is pushed. The build settings live in `youtube_downloader.sp
 - **Resuming:** partial downloads resume automatically; network errors retry up to 10 times.
 - **`ffmpeg not found`** — install ffmpeg (see Prerequisites) and make sure it's on your `PATH`.
 - **`Could not open folder`** — harmless; the download still completed, only the auto-open step failed.
+- **`Sign in to confirm you're not a bot`** — YouTube didn't trust the request. Open
+  **Settings** and set *Cookies from browser* to a browser where you're signed in (or
+  point `cookies_file` at a `cookies.txt`), then try again. See
+  [Signing in (cookies)](#signing-in-cookies) for the platform caveats. This block is
+  not retried, because retrying the same anonymous request just repeats it.
 - **Subtitle / video-info errors** — usually a private, region-locked, or age-restricted video, or a temporary YouTube rate limit; retry later.
 - **`No supported JavaScript runtime` warning** — harmless. Downloads still work
   because the app prefers H.264 formats that don't need YouTube's signature
   challenge. To silence it and unlock all formats (e.g. AV1): install a JS runtime
-  (`brew install deno`, or have Node.js installed) **and** set
-  `"settings": { "use_js_runtime": true }` in `metadata.json`. When enabled, the
-  app lets yt-dlp fetch its EJS solver script from the yt-dlp GitHub (that's why
-  it's off by default). Leave it `false` to keep the default, no-network-fetch
-  behavior.
+  (`brew install deno`, or have Node.js installed). `use_js_runtime` is on by
+  default; when enabled, the app lets yt-dlp fetch its EJS solver script from the
+  yt-dlp GitHub. Set it to `false` in `settings.json` if you'd rather it never
+  fetched that script.
 

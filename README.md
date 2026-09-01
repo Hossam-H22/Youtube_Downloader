@@ -13,6 +13,7 @@ Video Downloader is a powerful and easy-to-use application designed to help you 
 - **Live progress** — real-time progress bar with download speed and ETA (web app).
 - **Retry failed downloads** — failed playlist videos are listed with a one-click retry; re-running a playlist skips what's already downloaded.
 - **Update notifications** — the app checks GitHub on startup and lets you know when a newer version is available.
+- **Sign-in / cookie support** — when YouTube asks you to "confirm you're not a bot", point the app at your browser's cookies (or a `cookies.txt`) in Settings and it downloads as your signed-in session.
 - **Built-in log viewer** — view, refresh, auto-refresh, and clear the app logs without leaving the window (web app).
 - **Folder picker** — browse to a save folder and open the output folder when a download finishes.
 

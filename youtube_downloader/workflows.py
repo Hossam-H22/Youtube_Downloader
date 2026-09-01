@@ -57,7 +57,13 @@ class DownloadWorkflows:
             save_path = os.path.join(save_path, info.title)
             ensure_dir(save_path)
 
-        self.downloader.download(info.url, info.title, save_path, progress_hook)
+        outcome = self.downloader.download(info.url, info.title, save_path, progress_hook)
+        if not outcome:
+            # Nothing was written, so subtitles and chapter splitting would operate on
+            # a file that does not exist. Report the failure instead of a silent no-op.
+            reason = getattr(outcome, 'error', '') or "download failed"
+            logger.error("Video workflow failed: '%s': %s", info.title, reason)
+            return VideoDownloadResult(output_path=save_path, success=False, error=reason)
 
         subtitle_file = ""
         if options.subtitle_language:

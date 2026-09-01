@@ -15,6 +15,7 @@ from youtube_downloader.downloader import YtDlpDownloader
 from youtube_downloader.info_service import YtDlpInfoProvider
 from youtube_downloader.logging_config import setup_logging
 from youtube_downloader.metadata import get_metadata
+from youtube_downloader.settings import get_settings
 from youtube_downloader.subtitles import TranscriptApiSubtitleService
 from youtube_downloader.workflows import DownloadWorkflows
 
@@ -22,8 +23,8 @@ CONSOLE_FLAGS = {"--console-view", "console-view"}
 
 
 def _log_level() -> int:
-    """Resolve the log level from metadata.json settings (default INFO)."""
-    name = (get_metadata().get('settings', {}) or {}).get('log_level', 'INFO')
+    """Resolve the log level from the app settings (default INFO)."""
+    name = get_settings().get('log_level', 'INFO')
     return getattr(logging, str(name).upper(), logging.INFO)
 
 

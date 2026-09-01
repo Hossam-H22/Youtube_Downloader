@@ -7,9 +7,28 @@ import yt_dlp
 from .interfaces import InfoProvider
 from .models import Chapter, PlaylistInfo, VideoInfo
 from .utils import clean_filename
-from .ytdlp_support import js_runtime_opts
+from .ytdlp_support import base_ydl_opts, friendly_error
 
 logger = logging.getLogger(__name__)
+
+
+def _extract(ydl_opts: dict, url: str) -> dict:
+    """Run yt-dlp's extractor, rewriting recognized failures into actionable text.
+
+    yt-dlp's "Sign in to confirm you're not a bot" message tells the user to pass
+    ``--cookies-from-browser``, a command-line flag this app doesn't expose. Rewriting
+    it here means both front-ends show the fix without either of them needing to know
+    anything about yt-dlp. Unrecognized errors propagate untouched.
+    """
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            return ydl.extract_info(url, download=False)
+    except Exception as e:
+        friendly = friendly_error(e)
+        if friendly is None:
+            raise
+        logger.error("Extraction blocked for %s: %s", url, e)
+        raise RuntimeError(friendly) from e
 
 
 class YtDlpInfoProvider(InfoProvider):
@@ -19,10 +38,9 @@ class YtDlpInfoProvider(InfoProvider):
         logger.info("Fetching video info: %s", url)
         ydl_opts = {
             'quiet': True,  # Suppress output
-            **js_runtime_opts(),  # opt-in nsig solving (see metadata.json settings)
+            **base_ydl_opts(),  # multi-client sourcing, opt-in nsig solving, cookies
         }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        info = _extract(ydl_opts, url)
 
         raw_chapters = info.get('chapters', []) or []
         chapters = [
@@ -54,9 +72,9 @@ class YtDlpInfoProvider(InfoProvider):
         ydl_opts = {
             'quiet': True,        # Suppress output
             'extract_flat': True,  # Only list the playlist entries, don't resolve each video yet
+            **base_ydl_opts(),    # same client/nsig/cookie handling as every other request
         }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        info = _extract(ydl_opts, url)
 
         entries = info.get('entries', []) or []
         video_urls = [
