@@ -112,11 +112,19 @@ class DownloadOutcome:
 
 @dataclass
 class VideoDownloadResult:
-    """Outcome of a single-video download."""
+    """Outcome of a single-video download.
+
+    ``success`` is ``False`` when the download itself failed (e.g. YouTube demanded
+    sign-in), in which case ``error`` carries the reason and the subtitle/chapter
+    steps were skipped. Both default to "succeeded" so existing callers that only
+    read ``output_path`` are unaffected.
+    """
 
     output_path: str
     subtitle_file: str = ""
     chapters_split: bool = False
+    success: bool = True
+    error: str = ""
 
 
 @dataclass

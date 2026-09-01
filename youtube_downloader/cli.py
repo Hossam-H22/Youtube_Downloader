@@ -61,11 +61,25 @@ class ConsoleApp:
             return transcript_list[subtitle_choise - 1]
         return None
 
+    def _report_fetch_failure(self, kind: str, error: Exception) -> None:
+        """Print why a metadata fetch failed and return to the menu.
+
+        Without this a YouTube block (e.g. the "confirm you're not a bot" sign-in
+        check) escapes as a raw traceback and kills the whole console session.
+        """
+        logger.error("Could not fetch %s info: %s", kind, error)
+        print('           ', end='\r')
+        print(f"\nCould not read that {kind}: {error}\n")
+
     # ------------------------------------------------------------------ #
     # Video flow
     # ------------------------------------------------------------------ #
     def video_processes(self, video_url: str) -> None:
-        info = self.info_provider.get_video_info(video_url)
+        try:
+            info = self.info_provider.get_video_info(video_url)
+        except Exception as e:
+            self._report_fetch_failure("video", e)
+            return
         info.transcript_list = self.subtitle_service.list_available(info.id)
 
         print('           ', end='\r')
@@ -96,6 +110,10 @@ class ConsoleApp:
             )
             result = self.workflows.download_video(info, options)
 
+            if not result.success:
+                print(f"\nDownload failed: {result.error}\n")
+                return
+
             print("\nDownload Finished\n\n")
             open_folder(result.output_path)
 
@@ -111,7 +129,11 @@ class ConsoleApp:
         return []
 
     def playlist_processes(self, playlist_url: str) -> None:
-        info = self.info_provider.get_playlist_info(playlist_url)
+        try:
+            info = self.info_provider.get_playlist_info(playlist_url)
+        except Exception as e:
+            self._report_fetch_failure("playlist", e)
+            return
         info.transcript_list = self._resolve_playlist_subtitles(info)
 
         print('           ', end='\r')
