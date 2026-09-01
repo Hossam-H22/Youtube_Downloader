@@ -30,7 +30,8 @@ youtube_downloader/
   chapters.py     # FfmpegChapterSplitter(ChapterSplitter) — ffmpeg + pysrt
   filesystem.py   # side effects: open_folder, pick_folder, create_text_file, clear_console, ensure_dir
   metadata.py     # get_metadata()/get_version() — reads metadata.json (single source of truth)
-  ytdlp_support.py# js_runtime_opts() — opt-in yt-dlp nsig-solver options (metadata.json settings)
+  settings.py     # get_settings()/update_settings() — metadata.json defaults + writable settings.json
+  ytdlp_support.py# base_ydl_opts() — shared yt-dlp options (player clients, nsig solver, cookies) + error classification
   logging_config.py # setup_logging() — always-on file log + optional console (see below)
   workflows.py    # DownloadWorkflows — shared download/subtitle/chapter orchestration (no UI)
   cli.py          # ConsoleApp — console menu + I/O, delegates to workflows
@@ -73,12 +74,33 @@ knows the concrete classes and does the wiring. The GUI reports progress via a
   description, author, repository, ...). The banner reads it at runtime via
   `metadata.py`'s `get_metadata()` — never hardcode the name, version, or developer.
   Bump the version with the `/bump-version` skill.
-- **Opt-in JS runtime.** `metadata.json` → `settings.use_js_runtime` (default
-  `false`). When `true` and a runtime (deno/node/bun) is on `PATH`, `ytdlp_support.js_runtime_opts()`
-  enables it plus the remote EJS solver so yt-dlp solves YouTube's nsig challenge
-  (all formats, no warning). Off by default because it fetches a solver script from
-  the yt-dlp GitHub. Downloads work either way (the downloader prefers H.264 formats
-  that don't need nsig).
+- **Settings are layered, and only one layer is writable.** `metadata.json` holds the
+  bundled *defaults*; user changes go to `settings.json` under `paths.writable_dir()`.
+  Read them through `settings.get_settings()` — never `get_metadata()['settings']` —
+  because `metadata.json` resolves into PyInstaller's `sys._MEIPASS` when frozen and
+  is wiped on exit, so anything a user can change must live in the writable layer.
+  `settings.py` also owns the valid values for a setting (e.g.
+  `SUPPORTED_COOKIE_BROWSERS`) so front-ends can offer choices without importing
+  service internals.
+- **All yt-dlp options come from `ytdlp_support.base_ydl_opts()`.** The downloader and
+  both info-provider methods spread it, so the player-client fallback list, the opt-in
+  JS runtime, and cookies can never drift apart between metadata fetches and downloads.
+  Add shared yt-dlp behavior there, not in one call site.
+- **Opt-in JS runtime.** `settings.use_js_runtime` (default `true` in the shipped
+  `metadata.json`). When on and a runtime (deno/node/bun) is on `PATH`,
+  `ytdlp_support.js_runtime_opts()` enables it plus the remote EJS solver so yt-dlp
+  solves YouTube's nsig challenge (all formats, no warning). It fetches a solver
+  script from the yt-dlp GitHub, so it can be turned off. Downloads work either way
+  (the downloader prefers H.264 formats that don't need nsig).
+- **Cookies are how sign-in blocks get fixed.** YouTube's "Sign in to confirm you're
+  not a bot" is cleared by `settings.cookies_from_browser` / `cookies_file`, turned
+  into yt-dlp options by `ytdlp_support.cookie_opts()`. Classify such failures with
+  `is_auth_error()` (never retry them — retrying repeats the block) and report them
+  with `friendly_error()`, which is applied at the source (`info_service`,
+  `downloader`) so neither front-end needs to know anything about yt-dlp.
+- **Report download failures.** `DownloadOutcome` / `VideoDownloadResult.success` exist
+  so a failed download is never presented as a success — check them in the workflows
+  and surface the reason in both front-ends.
 - **External dependencies:** `yt-dlp`, `youtube-transcript-api`, `pysrt`, `flask`
   (see `requirements.txt`), plus **ffmpeg** as an external runtime binary used for
   merging streams and chapter splitting.
