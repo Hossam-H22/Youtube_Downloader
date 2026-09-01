@@ -544,3 +544,72 @@ $("logs-autorefresh").addEventListener("change", (e) => {
         logsRefreshTimer = null;
     }
 });
+
+// --------------------------------------------------------------------------- //
+// Settings
+//
+// Cookies are read server-side from these settings, so nothing here is attached
+// to individual download requests — saving once applies to every fetch/download.
+// --------------------------------------------------------------------------- //
+function renderSettings(data) {
+    const settings = data.settings || {};
+
+    const select = $("settings-browser");
+    select.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = "None (anonymous)";
+    select.appendChild(none);
+    (data.browsers || []).forEach((name) => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+    });
+    select.value = settings.cookies_from_browser || "";
+
+    $("settings-cookies-file").value = settings.cookies_file || "";
+    $("settings-js-runtime").checked = !!settings.use_js_runtime;
+    $("settings-path").textContent = data.settings_path || "";
+}
+
+function showSettingsError(message) {
+    const el = $("settings-error");
+    el.textContent = message;
+    el.classList.toggle("hidden", !message);
+}
+
+function setSettingsOpen(open) {
+    $("settings-modal").classList.toggle("hidden", !open);
+    if (!open) return;
+    showSettingsError("");
+    fetch("/api/settings")
+        .then((r) => r.json())
+        .then(renderSettings)
+        .catch((e) => showSettingsError("Could not load settings: " + e));
+}
+
+$("settings-toggle").addEventListener("click", () => setSettingsOpen(true));
+$("settings-close").addEventListener("click", () => setSettingsOpen(false));
+$("settings-save").addEventListener("click", () => {
+    const btn = $("settings-save");
+    btn.disabled = true;
+    showSettingsError("");
+    api("/api/settings", {
+        cookies_from_browser: $("settings-browser").value,
+        cookies_file: $("settings-cookies-file").value.trim(),
+        use_js_runtime: $("settings-js-runtime").checked,
+    })
+        .then((data) => {
+            if (data.error) {
+                showSettingsError(data.error);
+                return;
+            }
+            renderSettings(data);
+            setSettingsOpen(false);
+        })
+        .catch((e) => showSettingsError("Could not save settings: " + e))
+        .finally(() => {
+            btn.disabled = false;
+        });
+});

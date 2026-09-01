@@ -15,6 +15,12 @@ from ..logging_config import LOG_FILE, clear_logs
 from ..metadata import get_metadata
 from ..models import PlaylistDownloadOptions, VideoDownloadOptions
 from ..paths import resource_path
+from ..settings import (
+    SUPPORTED_COOKIE_BROWSERS,
+    get_settings,
+    settings_path,
+    update_settings,
+)
 from ..update_checker import check_for_update
 from ..workflows import DownloadWorkflows
 from . import jobs
@@ -122,6 +128,40 @@ def create_app(
             return jsonify({'error': str(e)}), 500
 
     # ------------------------------------------------------------------ #
+    # Settings
+    # ------------------------------------------------------------------ #
+    # Cookies are read server-side from these settings, so the download requests
+    # themselves stay unchanged — nothing cookie-related is sent per job.
+    _EDITABLE_SETTINGS = ('cookies_from_browser', 'cookies_file', 'use_js_runtime')
+
+    def _settings_payload() -> dict:
+        return {
+            'settings': get_settings(),
+            'settings_path': settings_path(),
+            'browsers': list(SUPPORTED_COOKIE_BROWSERS),
+        }
+
+    @app.get('/api/settings')
+    def api_settings_get():
+        """Current effective settings, plus where they are stored and valid choices."""
+        return jsonify(_settings_payload())
+
+    @app.post('/api/settings')
+    def api_settings_set():
+        """Persist the editable settings and return the new effective values."""
+        data = request.get_json(silent=True) or {}
+        changes = {key: data[key] for key in _EDITABLE_SETTINGS if key in data}
+        if not changes:
+            return jsonify({'error': 'No known settings provided'}), 400
+        logger.info("GUI request: update settings (%s)", ", ".join(sorted(changes)))
+        try:
+            update_settings(changes)
+        except OSError as e:  # noqa: BLE001 - report an unwritable settings file to the UI
+            logger.error("Could not save settings: %s", e)
+            return jsonify({'error': f'Could not save settings: {e}'}), 500
+        return jsonify(_settings_payload())
+
+    # ------------------------------------------------------------------ #
     # Info fetching
     # ------------------------------------------------------------------ #
     @app.post('/api/video-info')
@@ -190,6 +230,9 @@ def create_app(
             info = info_provider.get_video_info(url)
             job.emit(type='status', message=f'Downloading: {info.title}')
             result = workflows.download_video(info, options, progress_hook=_progress_hook(job))
+            if not result.success:
+                job.emit(type='error', message=result.error)
+                return
             job.emit(
                 type='done',
                 output_path=result.output_path,

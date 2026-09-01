@@ -11,7 +11,10 @@
     <header class="app-header">
         <h1 id="app-name">Youtube Downloader</h1>
         <span id="app-meta" class="app-meta"></span>
-        <button id="logs-toggle" class="btn ghost logs-toggle" title="Show system logs">Logs</button>
+        <div class="header-actions">
+            <button id="settings-toggle" class="btn ghost" title="Settings">Settings</button>
+            <button id="logs-toggle" class="btn ghost logs-toggle" title="Show system logs">Logs</button>
+        </div>
     </header>
 
     <main class="container">
@@ -128,6 +131,40 @@
             <div class="modal-actions">
                 <button id="update-later" class="btn ghost">Later</button>
                 <a id="update-download" class="btn primary" href="#" target="_blank" rel="noopener">Download latest</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <h2 id="settings-title" class="modal-title">Settings</h2>
+            <p class="modal-body">
+                If YouTube asks you to “confirm you’re not a bot”, point the app at a
+                signed-in browser session so it can send your cookies.
+            </p>
+
+            <label class="field">
+                <span>Cookies from browser</span>
+                <select id="settings-browser"></select>
+            </label>
+
+            <label class="field">
+                <span>Or a cookies.txt file</span>
+                <div class="folder-row">
+                    <input type="text" id="settings-cookies-file" placeholder="/path/to/cookies.txt">
+                </div>
+            </label>
+
+            <label class="check">
+                <input type="checkbox" id="settings-js-runtime"> Use a JavaScript runtime (unlocks all formats)
+            </label>
+
+            <p class="settings-path">Saved to <code id="settings-path"></code></p>
+            <div id="settings-error" class="error hidden"></div>
+
+            <div class="modal-actions">
+                <button id="settings-close" class="btn ghost">Close</button>
+                <button id="settings-save" class="btn primary">Save</button>
             </div>
         </div>
     </div>
